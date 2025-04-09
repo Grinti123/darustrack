@@ -53,34 +53,44 @@ function Login() {
 
   return (
     <div className="min-vh-100 d-flex flex-column">
-      {/* Header/Top Bar */}
-
 
       {/* Blue Banner with Logo and School Name */}
-      <div className="bg-primary text-white p-4">
-        <div className="container d-flex align-items-center">
-          <img src={logo} alt="School Logo" className="me-3" height="60" />
-          <div>
-            <h1 className="fs-2 mb-0">SDIT 01 Darussalam Batam</h1>
-            <p className="mb-0 small">Mempertahankan Kebaikan Kebaikan Lama Mengembangkan hal hal baru yang lebih baik</p>
+      <div className="bg-primary text-white p-3 p-md-4">
+        <div className="container">
+          <div className="d-flex flex-column flex-md-row align-items-center text-center text-md-start">
+            <img src={logo} alt="School Logo" className="mb-2 mb-md-0 me-md-3" height="50" width="50" />
+            <div>
+              <h1 className="fs-4 fs-md-3 fs-lg-2 mb-0">SDIT 01 Darussalam Batam</h1>
+              <p className="mb-0 small fs-6 fs-md-6 lh-sm">Mempertahankan Kebaikan Kebaikan Lama Mengembangkan hal hal baru yang lebih baik</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+      <div className="flex-grow-1 d-flex align-items-center justify-content-center py-4">
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-md-8 col-lg-6">
+            <div className="col-11 col-sm-10 col-md-9 col-lg-7 col-xl-6">
               <div className="card border-0 shadow-sm">
-                <div className="card-body p-4">
-                  <div className="d-flex mb-4">
-                    <div className="flex-shrink-0 me-4">
-                      <img src={Illustration} alt="Login Illustration" width="200" />
+                <div className="card-body p-3 p-sm-4">
+                  <div className="d-flex flex-column flex-md-row align-items-center">
+                    <div className="mb-3 mb-md-0 me-md-4 d-flex justify-content-center" style={{ minWidth: '100px' }}>
+                      <img
+                        src={Illustration}
+                        alt="Login Illustration"
+                        className="img-fluid"
+                        style={{
+                          maxWidth: '100%',
+                          width: '160px',
+                          height: 'auto',
+                          display: 'block'
+                        }}
+                      />
                     </div>
                     <div className="flex-grow-1">
                       {error && (
-                        <div className="alert alert-danger" role="alert">
+                        <div className="alert alert-danger py-2" role="alert">
                           {error}
                         </div>
                       )}

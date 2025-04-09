@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/logo.png'
+import Illustration from '../assets/Illustration.svg'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -51,80 +52,84 @@ function Login() {
   }
 
   return (
-    <div className="container">
-      <div className="row justify-content-center align-items-center min-vh-100">
-        <div className="col-md-6 col-lg-5">
-          <div className="card shadow-sm">
-            <div className="card-body p-5">
-              <div className="text-center mb-4">
-                <img src={logo} alt="DarusTrack Logo" height="60" />
-                <h2 className="mt-3 text-primary">DarusTrack</h2>
-                <p className="text-muted">Academic Monitoring System</p>
+    <div className="min-vh-100 d-flex flex-column">
+      {/* Header/Top Bar */}
+
+
+      {/* Blue Banner with Logo and School Name */}
+      <div className="bg-primary text-white p-4">
+        <div className="container d-flex align-items-center">
+          <img src={logo} alt="School Logo" className="me-3" height="60" />
+          <div>
+            <h1 className="fs-2 mb-0">SDIT 01 Darussalam Batam</h1>
+            <p className="mb-0 small">Mempertahankan Kebaikan Kebaikan Lama Mengembangkan hal hal baru yang lebih baik</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-8 col-lg-6">
+              <div className="card border-0 shadow-sm">
+                <div className="card-body p-4">
+                  <div className="d-flex mb-4">
+                    <div className="flex-shrink-0 me-4">
+                      <img src={Illustration} alt="Login Illustration" width="200" />
+                    </div>
+                    <div className="flex-grow-1">
+                      {error && (
+                        <div className="alert alert-danger" role="alert">
+                          {error}
+                        </div>
+                      )}
+
+                      <form onSubmit={handleSubmit}>
+                        <div className="mb-3">
+                          <label htmlFor="email" className="form-label">Email Address</label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label htmlFor="password" className="form-label">Password</label>
+                          <input
+                            type="password"
+                            className="form-control"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <small className="text-muted">Forgot My Password</small>
+                        </div>
+
+                        <div className="d-grid">
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={loading}
+                          >
+                            {loading ? 'Signing In...' : 'Sign In'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              {error && (
-                <div className="alert alert-danger" role="alert">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="email" className="form-label">Email</label>
-                  <div className="input-group">
-                    <span className="input-group-text">
-                      <i className="bi bi-envelope"></i>
-                    </span>
-                    <input
-                      type="email"
-                      className="form-control"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="Enter your email"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <div className="input-group">
-                    <span className="input-group-text">
-                      <i className="bi bi-lock"></i>
-                    </span>
-                    <input
-                      type="password"
-                      className="form-control"
-                      id="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="Enter your password"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <div className="d-grid gap-2 mt-4">
-                  <button
-                    type="submit"
-                    className="btn btn-primary py-2"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         </div>

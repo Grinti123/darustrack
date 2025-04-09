@@ -32,7 +32,10 @@ const handleResponse = async (response) => {
 // Common fetch options
 const getCommonOptions = () => ({
   credentials: 'include',
-  mode: 'cors'
+  mode: 'cors',
+  headers: {
+    'Access-Control-Allow-Credentials': 'true'
+  }
 });
 
 // Auth API
@@ -40,8 +43,11 @@ export const authAPI = {
   login: (credentials) =>
     fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      ...getCommonOptions(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(credentials)
     }).then(handleResponse),
 

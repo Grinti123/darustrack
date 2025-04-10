@@ -33,7 +33,7 @@ const AttendanceForm = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
-      toast.error('Gagal mengambil data kehadiran');
+      toast.error('Data kehadiran belum ada');
       setAttendanceData([]);
       setDateSubmitted(false);
     } finally {
@@ -170,7 +170,7 @@ const AttendanceForm = ({ onSuccess }) => {
     <div className="container mt-4">
       <div className="card">
         <div className="card-header">
-          <h5 className="card-title mb-0">Attendance Form</h5>
+          <h5 className="card-title mb-0">Kehadiran</h5>
         </div>
         <div className="card-body">
           {isWaliKelas ? (
@@ -178,7 +178,7 @@ const AttendanceForm = ({ onSuccess }) => {
             <div className="mb-4">
               <div className="row">
                 <div className="col-md-4">
-                  <label htmlFor="date" className="form-label">Select Date</label>
+                  <label htmlFor="date" className="form-label">Pilih Tanggal</label>
                   <input
                     type="date"
                     id="date"
@@ -200,7 +200,7 @@ const AttendanceForm = ({ onSuccess }) => {
                       className="btn btn-primary"
                       disabled={loading || !selectedDate}
                     >
-                      {loading ? 'Loading...' : 'Add Attendance Date'}
+                      {loading ? 'Loading...' : 'Tambah Tanggal Kehadiran'}
                     </button>
                   </div>
                 )}
@@ -321,7 +321,7 @@ const AttendanceForm = ({ onSuccess }) => {
           ) : (
             !loading && (
               <div className="alert alert-info mt-3">
-                No attendance data found for selected date
+                Tanggal ini belum ada data kehadiran
               </div>
             )
           )}

@@ -86,6 +86,13 @@ export const authAPI = {
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(passwordData)
+    }).then(handleResponse),
+
+  refreshToken: () =>
+    fetch(`${API_BASE_URL}/auth/refresh-token`, {
+      method: 'POST',
+      ...getCommonOptions(),
+      headers: getHeaders()
     }).then(handleResponse)
 };
 

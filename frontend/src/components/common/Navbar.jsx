@@ -2,14 +2,32 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 function Navbar({ toggleSidebar }) {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, refreshToken } = useAuth();
   const navigate = useNavigate();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleRefreshToken = async () => {
+    setIsRefreshing(true);
+    toast.loading('Refreshing token...');
+    try {
+      await refreshToken();
+      toast.dismiss();
+      toast.success('Token refreshed successfully!');
+    } catch (error) {
+      toast.dismiss();
+      toast.error(`Token refresh failed: ${error.message}`);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -24,6 +42,16 @@ function Navbar({ toggleSidebar }) {
         </button>
 
         <span className="navbar-brand d-md-none">DarusTrack</span>
+
+        <button
+          className="btn btn-sm btn-outline-secondary ms-2 d-none d-md-inline-flex align-items-center"
+          onClick={handleRefreshToken}
+          disabled={isRefreshing}
+          title="Refresh Token"
+        >
+          <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'animate-spin' : ''}`}></i>
+          <span className="ms-1 d-none d-lg-inline">Refresh</span>
+        </button>
 
         <div className="ms-auto d-flex align-items-center">
           <div className="dropdown">
@@ -49,6 +77,16 @@ function Navbar({ toggleSidebar }) {
                 </div>
               </li>
               <li><hr className="dropdown-divider d-md-none" /></li>
+              <li className="d-md-none">
+                <button
+                  className="dropdown-item d-flex align-items-center"
+                  onClick={handleRefreshToken}
+                  disabled={isRefreshing}
+                >
+                  <i className={`bi bi-arrow-clockwise me-2 ${isRefreshing ? 'animate-spin' : ''}`}></i>
+                  Refresh Token
+                </button>
+              </li>
               <li><Link className="dropdown-item" to="/profile">Profile</Link></li>
               <li><hr className="dropdown-divider" /></li>
               <li><button className="dropdown-item" onClick={handleLogout}>Logout</button></li>
@@ -59,5 +97,18 @@ function Navbar({ toggleSidebar }) {
     </nav>
   );
 }
+
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = `
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+`;
+document.head.appendChild(styleSheet);
 
 export default Navbar;

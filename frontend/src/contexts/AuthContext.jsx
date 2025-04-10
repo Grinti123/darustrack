@@ -44,6 +44,41 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const refreshToken = async () => {
+    try {
+      setError(null); // Clear previous errors
+      console.log('Attempting to refresh token...');
+      const response = await authAPI.refreshToken(); // Assuming authAPI has a refreshToken method
+      console.log('Refresh Token API Response:', response);
+
+      if (response && response.accessToken) {
+        localStorage.setItem('token', response.accessToken);
+        console.log('Token refreshed successfully.');
+
+        // Optional: Re-decode token if user info might change upon refresh
+        // const tokenPayload = JSON.parse(atob(response.accessToken.split('.')[1]));
+        // const user = {
+        //   id: tokenPayload.id,
+        //   name: tokenPayload.name,
+        //   role: tokenPayload.role
+        // };
+        // localStorage.setItem('user', JSON.stringify(user));
+        // setCurrentUser(user);
+        // setUserRole(user.role);
+
+        return true; // Indicate success
+      } else {
+        throw new Error('Invalid response from refresh token endpoint');
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to refresh token');
+      // Optional: Handle refresh failure, e.g., force logout
+      // logout();
+      throw error; // Re-throw error for caller to handle if needed
+    }
+  };
+
   const logout = async () => {
     try {
       await authAPI.logout()
@@ -74,6 +109,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userRole,
     login,
+    refreshToken,
     logout,
     loading,
     error

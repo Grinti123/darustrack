@@ -11,6 +11,8 @@ function UserManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [usersPerPage] = useState(10)
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -270,6 +272,58 @@ function UserManagement() {
     setUserToDelete(null)
   }
 
+  // Pagination logic
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = Array.isArray(users) ? users.slice(indexOfFirstUser, indexOfLastUser) : [];
+  const totalPages = Math.ceil((users?.length || 0) / usersPerPage);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Go to previous page
+  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+
+  // Go to next page
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedRole]);
+
+  // Function to get pagination items
+  const getPaginationItems = () => {
+    const delta = 2; // Number of pages to show before and after current page
+    const range = [];
+    const rangeWithDots = [];
+
+    // Always show first page
+    range.push(1);
+
+    // Calculate visible page numbers
+    for (let i = 2; i <= totalPages; i++) {
+      if (
+        i === totalPages || // Always show last page
+        (currentPage - delta <= i && i <= currentPage + delta) // Show pages near current page
+      ) {
+        range.push(i);
+      }
+    }
+
+    // Add dots between page numbers
+    let prev = 0;
+    for (const i of range) {
+      if (prev + 1 !== i) {
+        rangeWithDots.push('...');
+      }
+      rangeWithDots.push(i);
+      prev = i;
+    }
+
+    return rangeWithDots;
+  };
+
   if (!currentUser || userRole !== 'admin') {
     return null
   }
@@ -314,6 +368,18 @@ function UserManagement() {
                 </div>
               ) : (
               <div className="table-responsive">
+                {users.length > 0 && (
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="text-muted small">
+                      Menampilkan {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, users.length)} dari {users.length} pengguna
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="text-muted small">
+                        Halaman {currentPage} dari {totalPages}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <table className="table table-hover">
                   <thead>
                     <tr>
@@ -321,13 +387,11 @@ function UserManagement() {
                       <th>Nama</th>
                       <th>Email</th>
                       <th>Peran</th>
-                      <th>Kelas</th>
-                      <th>Status</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Array.isArray(users) && users.map((user) => (
+                    {Array.isArray(currentUsers) && currentUsers.map((user) => (
                       <tr key={user.id || Math.random()}>
                         <td>{user.id}</td>
                         <td>{user.name}</td>
@@ -339,22 +403,6 @@ function UserManagement() {
                           {user.role === 'kepala_sekolah' && <span className="badge bg-warning">Kepala Sekolah</span>}
                         </td>
                         <td>
-                          {user.role === 'wali_kelas' && (
-                            user.class_id ? (
-                              <span className="badge bg-info">{user.class_id}</span>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )
-                          )}
-                        </td>
-                        <td>
-                          {user.status === 'active' ? (
-                            <span className="badge bg-success">Aktif</span>
-                          ) : (
-                            <span className="badge bg-secondary">Tidak Aktif</span>
-                          )}
-                        </td>
-                        <td>
                           <div className="btn-group">
                             <button
                               className="btn btn-sm btn-outline-primary me-1"
@@ -362,17 +410,6 @@ function UserManagement() {
                               disabled={loading}
                             >
                               <i className="bi bi-eye"></i>
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-warning me-1"
-                              onClick={() => handleStatusToggle(user.id)}
-                              disabled={loading}
-                            >
-                              {user.status === 'active' ? (
-                                <i className="bi bi-toggle-on"></i>
-                              ) : (
-                                <i className="bi bi-toggle-off"></i>
-                              )}
                             </button>
                             <button
                               className="btn btn-sm btn-outline-danger"
@@ -387,6 +424,51 @@ function UserManagement() {
                     ))}
                   </tbody>
                 </table>
+                {totalPages > 1 && (
+                  <div className="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                      <ul className="pagination">
+                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                          <button
+                            className="page-link"
+                            onClick={goToPrevPage}
+                            disabled={currentPage === 1}
+                            aria-label="Previous"
+                          >
+                            <span aria-hidden="true">&laquo;</span>
+                          </button>
+                        </li>
+                        {getPaginationItems().map((item, index) => (
+                          <li key={index} className={`page-item ${item === '...' ? 'disabled' : ''} ${currentPage === item ? 'active' : ''}`}>
+                            <button
+                              onClick={() => item !== '...' ? paginate(item) : null}
+                              className="page-link"
+                              disabled={item === '...'}
+                            >
+                              {item}
+                            </button>
+                          </li>
+                        ))}
+                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                          <button
+                            className="page-link"
+                            onClick={goToNextPage}
+                            disabled={currentPage === totalPages}
+                            aria-label="Next"
+                          >
+                            <span aria-hidden="true">&raquo;</span>
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  </div>
+                )}
+                {users.length === 0 && !loading && (
+                  <div className="text-center py-4 text-muted">
+                    <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                    Tidak ada pengguna ditemukan
+                  </div>
+                )}
               </div>
               )}
             </div>
@@ -466,20 +548,7 @@ function UserManagement() {
                       />
                     </div>
                   )}
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="status" className="form-label">Status</label>
-                    <select
-                      className="form-select"
-                      id="status"
-                      name="status"
-                      value={newUser.status}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
+
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? 'Adding...' : 'Add User'}
@@ -615,18 +684,6 @@ function UserManagement() {
                             required
                           />
                         </div>
-                        <div className="mb-3">
-                          <label htmlFor="edit-class-id" className="form-label">ID Kelas</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="edit-class-id"
-                            name="class_id"
-                            value={editForm.class_id}
-                            onChange={handleEditChange}
-                            placeholder="Masukkan ID kelas yang ditugaskan"
-                          />
-                        </div>
                       </>
                     )}
                     <div className="mb-3">
@@ -691,31 +748,11 @@ function UserManagement() {
                         {selectedUser.role === 'kepala_sekolah' && <span className="badge bg-warning">Kepala Sekolah</span>}
                       </p>
                     </div>
-                    <div className="mb-3">
-                      <label className="fw-bold">Status</label>
-                      <p>
-                        {selectedUser.status === 'active' ? (
-                          <span className="badge bg-success">Aktif</span>
-                        ) : (
-                          <span className="badge bg-secondary">Tidak Aktif</span>
-                        )}
-                      </p>
-                    </div>
                     {selectedUser.role === 'wali_kelas' && (
                       <>
                         <div className="mb-3">
                           <label className="fw-bold">NIP</label>
                           <p>{selectedUser.nip || '-'}</p>
-                        </div>
-                        <div className="mb-3">
-                          <label className="fw-bold">ID Kelas</label>
-                          <p>
-                            {selectedUser.class_id ? (
-                              <span className="badge bg-info">{selectedUser.class_id}</span>
-                            ) : (
-                              <span className="text-muted">Belum ditugaskan</span>
-                            )}
-                          </p>
                         </div>
                       </>
                     )}

@@ -45,6 +45,8 @@ const getCommonOptions = () => ({
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
+  console.log(`[handleResponse] Processing response: ${response.url}, status: ${response.status}`);
+
   if (!response.ok) {
     console.error('API Error Response Status:', response.status, response.statusText);
 
@@ -155,12 +157,26 @@ const handleResponse = async (response) => {
     }
   }
   try {
-    return await response.json();
+    console.log(`[handleResponse] Parsing JSON response for: ${response.url}`);
+    const jsonData = await response.json();
+
+    // Log detailed information about classes data
+    if (response.url.includes('/classes')) {
+      console.log(`[handleResponse] Classes data:`, {
+        url: response.url,
+        dataType: Array.isArray(jsonData) ? 'array' : typeof jsonData,
+        length: Array.isArray(jsonData) ? jsonData.length : 'not an array',
+        data: jsonData
+      });
+    }
+
+    return jsonData;
   } catch (e) {
     if (response.status === 204) {
+      console.log(`[handleResponse] No content response (204) for: ${response.url}`);
       return null;
     }
-    console.error('Failed to parse successful API response:', e);
+    console.error(`[handleResponse] Failed to parse response for: ${response.url}`, e);
     throw new Error('Received invalid response format from server');
   }
 };
@@ -659,16 +675,38 @@ export const studentsAPI = {
 // Classes API
 export const classesAPI = {
   getAll: async (filters = {}) => {
+    console.log('[API] classesAPI.getAll called with filters:', filters);
+
     const queryParams = new URLSearchParams()
-    if (filters.level) {
-      queryParams.append('level', filters.level)
+    if (filters.grade_level) {
+      queryParams.append('grade_level', filters.grade_level)
+      console.log(`[API] Added grade_level filter: ${filters.grade_level}`);
     }
+
     const url = `${API_BASE_URL}/classes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    const response = await fetch(url, {
-      headers: getHeaders(),
-      credentials: 'include'
-    }).then(handleResponse)
-    return response
+    console.log(`[API] Making request to URL: ${url}`);
+
+    try {
+      console.log('[API] Sending fetch request with headers:', getHeaders());
+      const response = await fetch(url, {
+        headers: getHeaders(),
+        credentials: 'include'
+      });
+
+      console.log(`[API] Received response with status: ${response.status}`);
+
+      if (!response.ok) {
+        console.error(`[API] Error response: ${response.status} ${response.statusText}`);
+        // Let handleResponse handle the error
+      }
+
+      const data = await handleResponse(response);
+      console.log('[API] Parsed response data:', data);
+      return data;
+    } catch (error) {
+      console.error('[API] Exception in classesAPI.getAll:', error);
+      throw error;
+    }
   },
 
   getById: async (id) => {

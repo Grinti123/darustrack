@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { classesAPI } from '../utils/api'
+import { classesAPI, usersAPI, subjectsAPI } from '../utils/api'
 
 function ClassManagement() {
   const [classes, setClasses] = useState([])
   const [selectedLevel, setSelectedLevel] = useState('')
+  const [teachers, setTeachers] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [parents, setParents] = useState([])
   const [newClass, setNewClass] = useState({
     name: '',
     grade_level: '',
@@ -21,7 +24,8 @@ function ClassManagement() {
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
-    level: ''
+    grade_level: '',
+    teacher_id: ''
   })
   const [editStudentForm, setEditStudentForm] = useState({
     name: '',
@@ -60,26 +64,134 @@ function ClassManagement() {
 
   // Fetch classes from API with optional level filter
   const fetchClasses = async (level = '') => {
+    console.log(`[ClassManagement] Starting fetchClasses with level: "${level}"`);
     try {
       setLoading(true)
-      const filters = level ? { level } : {}
+      const filters = level ? { grade_level: level } : {}
+      console.log(`[ClassManagement] Fetching classes with filters:`, filters);
+
       const response = await classesAPI.getAll(filters)
-      setClasses(Array.isArray(response) ? response : [])
+      console.log(`[ClassManagement] Classes fetched successfully:`, response);
+
+      const classesArray = Array.isArray(response) ? response : [];
+      console.log(`[ClassManagement] Setting ${classesArray.length} classes to state`);
+      setClasses(classesArray)
       setError(null)
     } catch (err) {
+      console.error('[ClassManagement] Error fetching classes:', err);
+      console.error('[ClassManagement] Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        responseData: err.response?.data
+      });
       setError('Failed to fetch classes')
-      console.error('Error fetching classes:', err)
       setClasses([])
     } finally {
+      console.log('[ClassManagement] Fetch classes operation completed');
       setLoading(false)
     }
   }
 
+  // Fetch teachers from API
+  const fetchTeachers = async () => {
+    try {
+      console.log('[ClassManagement] Fetching teachers...');
+      const response = await usersAPI.getAll('wali_kelas');
+      console.log('[ClassManagement] Teachers fetched:', response);
+      setTeachers(Array.isArray(response) ? response : []);
+    } catch (err) {
+      console.error('[ClassManagement] Error fetching teachers:', err);
+      setError('Failed to fetch teachers');
+    }
+  }
+
+  // Fetch subjects from API
+  const fetchSubjects = async () => {
+    try {
+      console.log('[ClassManagement] Fetching subjects...');
+      const response = await subjectsAPI.getAll();
+      console.log('[ClassManagement] Subjects fetched:', response);
+      setSubjects(Array.isArray(response) ? response : []);
+    } catch (err) {
+      console.error('[ClassManagement] Error fetching subjects:', err);
+      setError('Failed to fetch subjects');
+    }
+  }
+
+  // Fetch parents from API
+  const fetchParents = async () => {
+    try {
+      console.log('[ClassManagement] Fetching parents...');
+      const response = await usersAPI.getAll('orang_tua');
+      console.log('[ClassManagement] Parents fetched:', response);
+      setParents(Array.isArray(response) ? response : []);
+    } catch (err) {
+      console.error('[ClassManagement] Error fetching parents:', err);
+      setError('Failed to fetch parents');
+    }
+  }
+
+  // Add click event listener to close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const teacherDropdown = document.getElementById('teacherDropdown');
+      const editTeacherDropdown = document.getElementById('editTeacherDropdown');
+      const subjectDropdown = document.getElementById('subjectDropdown');
+      const editSubjectDropdown = document.getElementById('editSubjectDropdown');
+      const parentDropdown = document.getElementById('parentDropdown');
+      const editParentDropdown = document.getElementById('editParentDropdown');
+
+      // Close teacher dropdowns
+      if (teacherDropdown && !event.target.closest('.dropdown') && teacherDropdown.classList.contains('show')) {
+        teacherDropdown.classList.remove('show');
+      }
+
+      if (editTeacherDropdown && !event.target.closest('.dropdown') && editTeacherDropdown.classList.contains('show')) {
+        editTeacherDropdown.classList.remove('show');
+      }
+
+      // Close subject dropdowns
+      if (subjectDropdown && !event.target.closest('.dropdown') && subjectDropdown.classList.contains('show')) {
+        subjectDropdown.classList.remove('show');
+      }
+
+      if (editSubjectDropdown && !event.target.closest('.dropdown') && editSubjectDropdown.classList.contains('show')) {
+        editSubjectDropdown.classList.remove('show');
+      }
+
+      // Close parent dropdowns
+      if (parentDropdown && !event.target.closest('.dropdown') && parentDropdown.classList.contains('show')) {
+        parentDropdown.classList.remove('show');
+      }
+
+      if (editParentDropdown && !event.target.closest('.dropdown') && editParentDropdown.classList.contains('show')) {
+        editParentDropdown.classList.remove('show');
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  // Fetch data when component mounts if admin
+  useEffect(() => {
+    if (currentUser && userRole === 'admin') {
+      fetchTeachers();
+      fetchSubjects();
+      fetchParents();
+    }
+  }, [currentUser, userRole]);
+
+  // Fetch classes when level changes
   useEffect(() => {
     if (currentUser) {
-      fetchClasses(selectedLevel)
+      fetchClasses(selectedLevel);
     }
-  }, [currentUser, selectedLevel])
+  }, [currentUser, selectedLevel]);
 
   const handleLevelChange = (e) => {
     setSelectedLevel(e.target.value)
@@ -141,7 +253,8 @@ function ClassManagement() {
     setEditForm({
       name: classItem.name,
       description: classItem.description,
-      level: classItem.level
+      grade_level: classItem.grade_level,
+      teacher_id: classItem.teacher_id
     })
     setShowEditModal(true)
   }
@@ -195,6 +308,11 @@ function ClassManagement() {
   const handleAddStudentClick = async (classItem) => {
     setSelectedClass(classItem)
     try {
+      // Make sure parents are loaded
+      if (parents.length === 0) {
+        await fetchParents();
+      }
+
       const response = await classesAPI.getStudents(classItem.id)
       setStudents(Array.isArray(response) ? response : [])
     } catch (err) {
@@ -251,7 +369,16 @@ function ClassManagement() {
     }
   }
 
-  const handleEditStudentClick = (student) => {
+  const handleEditStudentClick = async (student) => {
+    // Make sure parents are loaded
+    if (parents.length === 0) {
+      try {
+        await fetchParents();
+      } catch (err) {
+        console.error('Error fetching parents:', err);
+      }
+    }
+
     setSelectedStudent(student)
     setEditStudentForm({
       name: student.name,
@@ -316,6 +443,11 @@ function ClassManagement() {
   const handleAddScheduleClick = async (classItem) => {
     setSelectedClass(classItem)
     try {
+      // Make sure subjects are loaded
+      if (subjects.length === 0) {
+        await fetchSubjects();
+      }
+
       const response = await classesAPI.getSchedule(classItem.id)
       setSchedules(Array.isArray(response) ? response : [])
     } catch (err) {
@@ -372,7 +504,16 @@ function ClassManagement() {
     }
   }
 
-  const handleEditScheduleClick = (schedule) => {
+  const handleEditScheduleClick = async (schedule) => {
+    // Make sure subjects are loaded
+    if (subjects.length === 0) {
+      try {
+        await fetchSubjects();
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+      }
+    }
+
     setSelectedSchedule(schedule)
     setEditScheduleForm({
       subject_id: schedule.subject_id,
@@ -434,6 +575,171 @@ function ClassManagement() {
     }
   }
 
+  // Helper function to handle teacher search and filtering
+  const handleTeacherSearch = (e, dropdownId) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const dropdownMenu = document.getElementById(dropdownId);
+
+    if (!dropdownMenu) return;
+
+    // Show dropdown when searching
+    dropdownMenu.classList.add('show');
+
+    // Filter visible items in dropdown
+    const items = dropdownMenu.querySelectorAll('.dropdown-item');
+    let hasVisibleItems = false;
+
+    items.forEach(item => {
+      if (item.classList.contains('disabled')) return;
+
+      const teacherName = item.textContent.toLowerCase();
+      if (teacherName.includes(searchTerm)) {
+        item.style.display = 'block';
+        hasVisibleItems = true;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    // If no items match the search, show "No results found"
+    const noResultsItem = dropdownMenu.querySelector('.no-results');
+    if (!hasVisibleItems) {
+      if (!noResultsItem) {
+        const li = document.createElement('li');
+        li.className = 'no-results';
+        li.innerHTML = '<span class="dropdown-item disabled">Tidak ada hasil</span>';
+        dropdownMenu.appendChild(li);
+      } else {
+        noResultsItem.style.display = 'block';
+      }
+    } else if (noResultsItem) {
+      noResultsItem.style.display = 'none';
+    }
+  };
+
+  // Function to select a teacher from dropdown
+  const selectTeacher = (teacher, stateUpdater, dropdownId) => {
+    stateUpdater(prev => ({ ...prev, teacher_id: teacher.id }));
+    const dropdownMenu = document.getElementById(dropdownId);
+    if (dropdownMenu) {
+      dropdownMenu.classList.remove('show');
+    }
+  };
+
+  // Helper function to handle subject search and filtering
+  const handleSubjectSearch = (e, dropdownId) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const dropdownMenu = document.getElementById(dropdownId);
+
+    if (!dropdownMenu) return;
+
+    // Show dropdown when searching
+    dropdownMenu.classList.add('show');
+
+    // Filter visible items in dropdown
+    const items = dropdownMenu.querySelectorAll('.dropdown-item');
+    let hasVisibleItems = false;
+
+    items.forEach(item => {
+      if (item.classList.contains('disabled')) return;
+
+      const subjectName = item.textContent.toLowerCase();
+      if (subjectName.includes(searchTerm)) {
+        item.style.display = 'block';
+        hasVisibleItems = true;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    // If no items match the search, show "No results found"
+    const noResultsItem = dropdownMenu.querySelector('.no-results');
+    if (!hasVisibleItems) {
+      if (!noResultsItem) {
+        const li = document.createElement('li');
+        li.className = 'no-results';
+        li.innerHTML = '<span class="dropdown-item disabled">Tidak ada hasil</span>';
+        dropdownMenu.appendChild(li);
+      } else {
+        noResultsItem.style.display = 'block';
+      }
+    } else if (noResultsItem) {
+      noResultsItem.style.display = 'none';
+    }
+  };
+
+  // Function to select a subject from dropdown
+  const selectSubject = (subject, stateUpdater, dropdownId) => {
+    stateUpdater(prev => ({ ...prev, subject_id: subject.id }));
+    const dropdownMenu = document.getElementById(dropdownId);
+    if (dropdownMenu) {
+      dropdownMenu.classList.remove('show');
+    }
+  };
+
+  // Get subject name by ID
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.name : subjectId;
+  }
+
+  // Get parent name by ID
+  const getParentName = (parentId) => {
+    const parent = parents.find(p => p.id === parentId);
+    return parent ? parent.name : parentId;
+  }
+
+  // Helper function to handle parent search and filtering
+  const handleParentSearch = (e, dropdownId) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const dropdownMenu = document.getElementById(dropdownId);
+
+    if (!dropdownMenu) return;
+
+    // Show dropdown when searching
+    dropdownMenu.classList.add('show');
+
+    // Filter visible items in dropdown
+    const items = dropdownMenu.querySelectorAll('.dropdown-item');
+    let hasVisibleItems = false;
+
+    items.forEach(item => {
+      if (item.classList.contains('disabled')) return;
+
+      const parentName = item.textContent.toLowerCase();
+      if (parentName.includes(searchTerm)) {
+        item.style.display = 'block';
+        hasVisibleItems = true;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    // If no items match the search, show "No results found"
+    const noResultsItem = dropdownMenu.querySelector('.no-results');
+    if (!hasVisibleItems) {
+      if (!noResultsItem) {
+        const li = document.createElement('li');
+        li.className = 'no-results';
+        li.innerHTML = '<span class="dropdown-item disabled">Tidak ada hasil</span>';
+        dropdownMenu.appendChild(li);
+      } else {
+        noResultsItem.style.display = 'block';
+      }
+    } else if (noResultsItem) {
+      noResultsItem.style.display = 'none';
+    }
+  };
+
+  // Function to select a parent from dropdown
+  const selectParent = (parent, stateUpdater, dropdownId) => {
+    stateUpdater(prev => ({ ...prev, parent_id: parent.id }));
+    const dropdownMenu = document.getElementById(dropdownId);
+    if (dropdownMenu) {
+      dropdownMenu.classList.remove('show');
+    }
+  };
+
   if (!currentUser) {
     return null
   }
@@ -464,9 +770,12 @@ function ClassManagement() {
                     style={{ width: 'auto' }}
                   >
                     <option value="">Semua Tingkat</option>
-                    <option value="7">Tingkat 7</option>
-                    <option value="8">Tingkat 8</option>
-                    <option value="9">Tingkat 9</option>
+                    <option value="1">Tingkat 1</option>
+                    <option value="2">Tingkat 2</option>
+                    <option value="3">Tingkat 3</option>
+                    <option value="4">Tingkat 4</option>
+                    <option value="5">Tingkat 5</option>
+                    <option value="6">Tingkat 6</option>
                   </select>
                 </div>
               </div>
@@ -486,7 +795,6 @@ function ClassManagement() {
                         <th width="5%">ID</th>
                         <th>Nama</th>
                         <th>Tingkat</th>
-                        <th>Deskripsi</th>
                         <th>Tanggal Dibuat</th>
                         <th>Terakhir Diperbarui</th>
                         {userRole === 'admin' && <th>Aksi</th>}
@@ -497,11 +805,10 @@ function ClassManagement() {
                       <tr key={classItem.id}>
                         <td>{classItem.id}</td>
                         <td>{classItem.name}</td>
-                          <td>{classItem.level}</td>
-                          <td>{classItem.description}</td>
-                          <td>{classItem.createdAt}</td>
-                          <td>{classItem.updatedAt}</td>
-                          {userRole === 'admin' && (
+                        <td>{classItem.grade_level}</td>
+                        <td>{classItem.createdAt}</td>
+                        <td>{classItem.updatedAt}</td>
+                        {userRole === 'admin' && (
                             <td>
                               <div className="btn-group">
                                 <button
@@ -594,18 +901,49 @@ function ClassManagement() {
                   </select>
                 </div>
                 <div className="mb-3">
-                  <label htmlFor="teacher_id" className="form-label">ID Guru</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="teacher_id"
-                    name="teacher_id"
-                    value={newClass.teacher_id}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                    placeholder="Masukkan ID Guru"
-                  />
+                  <label htmlFor="teacher_id" className="form-label">Guru</label>
+                  <div className="dropdown">
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="teacherSearchInput"
+                      placeholder="Cari nama guru..."
+                      aria-label="Cari guru"
+                      onFocus={() => document.getElementById('teacherDropdown').classList.add('show')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        document.getElementById('teacherDropdown').classList.add('show');
+                      }}
+                      onChange={(e) => handleTeacherSearch(e, 'teacherDropdown')}
+                      value={teachers.find(t => t.id === newClass.teacher_id)?.name || ''}
+                    />
+                    <ul
+                      className="dropdown-menu w-100"
+                      id="teacherDropdown"
+                      style={{ maxHeight: '200px', overflowY: 'auto' }}
+                    >
+                      {teachers.length > 0 ? (
+                        teachers.map(teacher => (
+                          <li key={teacher.id}>
+                            <button
+                              type="button"
+                              className="dropdown-item"
+                              onClick={() => selectTeacher(teacher, setNewClass, 'teacherDropdown')}
+                            >
+                              {teacher.name} <small className="text-muted">({teacher.id})</small>
+                            </button>
+                          </li>
+                        ))
+                      ) : (
+                        <li><span className="dropdown-item disabled">Tidak ada guru</span></li>
+                      )}
+                    </ul>
+                  </div>
+                  {newClass.teacher_id && (
+                    <div className="form-text text-info">
+                      ID Guru yang dipilih: <strong>{newClass.teacher_id}</strong>
+                    </div>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -667,17 +1005,65 @@ function ClassManagement() {
                     <select
                       className="form-select"
                       id="edit-level"
-                      name="level"
-                      value={editForm.level}
+                      name="grade_level"
+                      value={editForm.grade_level}
                       onChange={handleEditInputChange}
                       required
                       disabled={loading}
                     >
                       <option value="">Pilih Tingkat</option>
-                      <option value="7">7</option>
-                      <option value="8">8</option>
-                      <option value="9">9</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
                     </select>
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="edit-teacher" className="form-label">Guru</label>
+                    <div className="dropdown">
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="editTeacherSearchInput"
+                        placeholder="Cari nama guru..."
+                        aria-label="Cari guru"
+                        onFocus={() => document.getElementById('editTeacherDropdown').classList.add('show')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('editTeacherDropdown').classList.add('show');
+                        }}
+                        onChange={(e) => handleTeacherSearch(e, 'editTeacherDropdown')}
+                        value={teachers.find(t => t.id === editForm.teacher_id)?.name || ''}
+                      />
+                      <ul
+                        className="dropdown-menu w-100"
+                        id="editTeacherDropdown"
+                        style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      >
+                        {teachers.length > 0 ? (
+                          teachers.map(teacher => (
+                            <li key={teacher.id}>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={() => selectTeacher(teacher, setEditForm, 'editTeacherDropdown')}
+                              >
+                                {teacher.name} <small className="text-muted">({teacher.id})</small>
+                              </button>
+                            </li>
+                          ))
+                        ) : (
+                          <li><span className="dropdown-item disabled">Tidak ada guru</span></li>
+                        )}
+                      </ul>
+                    </div>
+                    {editForm.teacher_id && (
+                      <div className="form-text text-info">
+                        ID Guru yang dipilih: <strong>{editForm.teacher_id}</strong>
+                      </div>
+                    )}
                   </div>
                   <div className="mb-3">
                     <label htmlFor="edit-description" className="form-label">Deskripsi</label>
@@ -745,7 +1131,7 @@ function ClassManagement() {
                 <p>Anda yakin ingin menghapus kelas ini?</p>
                 <div className="alert alert-warning">
                   <strong>Nama:</strong> {selectedClass.name}<br />
-                  <strong>Tingkat:</strong> {selectedClass.level}<br />
+                  <strong>Tingkat:</strong> {selectedClass.grade_level}<br />
                   <strong>Deskripsi:</strong> {selectedClass.description}
                 </div>
                 <p className="text-danger mb-0">
@@ -814,7 +1200,7 @@ function ClassManagement() {
                         <th>Nama</th>
                         <th>NISN</th>
                         <th>Tanggal Lahir</th>
-                        <th>ID Orang Tua</th>
+                        <th>Orang Tua</th>
                         <th>Aksi</th>
                       </tr>
                     </thead>
@@ -825,7 +1211,7 @@ function ClassManagement() {
                           <td>{student.name}</td>
                           <td>{student.nisn}</td>
                           <td>{new Date(student.birth_date).toLocaleDateString('id-ID')}</td>
-                          <td>{student.parent_id}</td>
+                          <td>{getParentName(student.parent_id)}</td>
                           <td>
                             <button
                               className="btn btn-sm btn-outline-primary me-1"
@@ -888,16 +1274,49 @@ function ClassManagement() {
                       />
                     </div>
                     <div className="col-md-6 mb-3">
-                      <label htmlFor="parent_id" className="form-label">ID Orang Tua</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="parent_id"
-                        name="parent_id"
-                        value={newStudent.parent_id}
-                        onChange={handleStudentInputChange}
-                        required
-                      />
+                      <label htmlFor="parent_id" className="form-label">Orang Tua</label>
+                      <div className="dropdown">
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="parentSearchInput"
+                          placeholder="Cari nama orang tua..."
+                          aria-label="Cari orang tua"
+                          onFocus={() => document.getElementById('parentDropdown').classList.add('show')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            document.getElementById('parentDropdown').classList.add('show');
+                          }}
+                          onChange={(e) => handleParentSearch(e, 'parentDropdown')}
+                          value={parents.find(p => p.id === newStudent.parent_id)?.name || ''}
+                        />
+                        <ul
+                          className="dropdown-menu w-100"
+                          id="parentDropdown"
+                          style={{ maxHeight: '200px', overflowY: 'auto' }}
+                        >
+                          {parents.length > 0 ? (
+                            parents.map(parent => (
+                              <li key={parent.id}>
+                                <button
+                                  type="button"
+                                  className="dropdown-item"
+                                  onClick={() => selectParent(parent, setNewStudent, 'parentDropdown')}
+                                >
+                                  {parent.name} <small className="text-muted">({parent.id})</small>
+                                </button>
+                              </li>
+                            ))
+                          ) : (
+                            <li><span className="dropdown-item disabled">Tidak ada orang tua</span></li>
+                          )}
+                        </ul>
+                      </div>
+                      {newStudent.parent_id && (
+                        <div className="form-text text-info">
+                          ID Orang Tua yang dipilih: <strong>{newStudent.parent_id}</strong>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-end">
@@ -974,16 +1393,49 @@ function ClassManagement() {
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="edit-parent-id" className="form-label">ID Orang Tua</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="edit-parent-id"
-                      name="parent_id"
-                      value={editStudentForm.parent_id}
-                      onChange={handleStudentInputChange}
-                      required
-                    />
+                    <label htmlFor="edit-parent-id" className="form-label">Orang Tua</label>
+                    <div className="dropdown">
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="editParentSearchInput"
+                        placeholder="Cari nama orang tua..."
+                        aria-label="Cari orang tua"
+                        onFocus={() => document.getElementById('editParentDropdown').classList.add('show')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('editParentDropdown').classList.add('show');
+                        }}
+                        onChange={(e) => handleParentSearch(e, 'editParentDropdown')}
+                        value={parents.find(p => p.id === editStudentForm.parent_id)?.name || ''}
+                      />
+                      <ul
+                        className="dropdown-menu w-100"
+                        id="editParentDropdown"
+                        style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      >
+                        {parents.length > 0 ? (
+                          parents.map(parent => (
+                            <li key={parent.id}>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={() => selectParent(parent, setEditStudentForm, 'editParentDropdown')}
+                              >
+                                {parent.name} <small className="text-muted">({parent.id})</small>
+                              </button>
+                            </li>
+                          ))
+                        ) : (
+                          <li><span className="dropdown-item disabled">Tidak ada orang tua</span></li>
+                        )}
+                      </ul>
+                    </div>
+                    {editStudentForm.parent_id && (
+                      <div className="form-text text-info">
+                        ID Orang Tua yang dipilih: <strong>{editStudentForm.parent_id}</strong>
+                      </div>
+                    )}
                   </div>
                   <div className="text-end">
                     <button type="button" className="btn btn-secondary me-2" onClick={() => setShowEditStudentModal(false)}>
@@ -1020,7 +1472,8 @@ function ClassManagement() {
                 <p>Apakah Anda yakin ingin menghapus siswa ini?</p>
                 <div className="alert alert-warning">
                   <strong>Nama:</strong> {selectedStudent.name}<br />
-                  <strong>NISN:</strong> {selectedStudent.nisn}
+                  <strong>NISN:</strong> {selectedStudent.nisn}<br />
+                  <strong>Orang Tua:</strong> {getParentName(selectedStudent.parent_id)}
                 </div>
               </div>
               <div className="modal-footer">
@@ -1077,17 +1530,48 @@ function ClassManagement() {
                 <form onSubmit={handleAddScheduleSubmit}>
                   <div className="mb-3">
                     <label htmlFor="schedule-subject" className="form-label">Mata Pelajaran</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="schedule-subject"
-                      name="subject_id"
-                      value={newSchedule.subject_id}
-                      onChange={handleScheduleInputChange}
-                      required
-                      disabled={loading}
-                      placeholder="Masukkan ID Mata Pelajaran"
-                    />
+                    <div className="dropdown">
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="subjectSearchInput"
+                        placeholder="Cari mata pelajaran..."
+                        aria-label="Cari mata pelajaran"
+                        onFocus={() => document.getElementById('subjectDropdown').classList.add('show')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('subjectDropdown').classList.add('show');
+                        }}
+                        onChange={(e) => handleSubjectSearch(e, 'subjectDropdown')}
+                        value={subjects.find(s => s.id === newSchedule.subject_id)?.name || ''}
+                      />
+                      <ul
+                        className="dropdown-menu w-100"
+                        id="subjectDropdown"
+                        style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      >
+                        {subjects.length > 0 ? (
+                          subjects.map(subject => (
+                            <li key={subject.id}>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={() => selectSubject(subject, setNewSchedule, 'subjectDropdown')}
+                              >
+                                {subject.name} <small className="text-muted">({subject.id})</small>
+                              </button>
+                            </li>
+                          ))
+                        ) : (
+                          <li><span className="dropdown-item disabled">Tidak ada mata pelajaran</span></li>
+                        )}
+                      </ul>
+                    </div>
+                    {newSchedule.subject_id && (
+                      <div className="form-text text-info">
+                        ID Mata Pelajaran yang dipilih: <strong>{newSchedule.subject_id}</strong>
+                      </div>
+                    )}
                   </div>
                   <div className="mb-3">
                     <label htmlFor="schedule-day" className="form-label">Hari</label>
@@ -1170,7 +1654,7 @@ function ClassManagement() {
                       <tbody>
                         {schedules.map((schedule) => (
                           <tr key={schedule.id}>
-                            <td>{schedule.subject_id}</td>
+                            <td>{getSubjectName(schedule.subject_id)}</td>
                             <td>{schedule.day}</td>
                             <td>{schedule.start_time}</td>
                             <td>{schedule.end_time}</td>
@@ -1233,16 +1717,48 @@ function ClassManagement() {
                 <form onSubmit={handleEditScheduleSubmit}>
                   <div className="mb-3">
                     <label htmlFor="edit-schedule-subject" className="form-label">Mata Pelajaran</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="edit-schedule-subject"
-                      name="subject_id"
-                      value={editScheduleForm.subject_id}
-                      onChange={(e) => setEditScheduleForm(prev => ({ ...prev, subject_id: e.target.value }))}
-                      required
-                      disabled={loading}
-                    />
+                    <div className="dropdown">
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="editSubjectSearchInput"
+                        placeholder="Cari mata pelajaran..."
+                        aria-label="Cari mata pelajaran"
+                        onFocus={() => document.getElementById('editSubjectDropdown').classList.add('show')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('editSubjectDropdown').classList.add('show');
+                        }}
+                        onChange={(e) => handleSubjectSearch(e, 'editSubjectDropdown')}
+                        value={subjects.find(s => s.id === editScheduleForm.subject_id)?.name || ''}
+                      />
+                      <ul
+                        className="dropdown-menu w-100"
+                        id="editSubjectDropdown"
+                        style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      >
+                        {subjects.length > 0 ? (
+                          subjects.map(subject => (
+                            <li key={subject.id}>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={() => selectSubject(subject, setEditScheduleForm, 'editSubjectDropdown')}
+                              >
+                                {subject.name} <small className="text-muted">({subject.id})</small>
+                              </button>
+                            </li>
+                          ))
+                        ) : (
+                          <li><span className="dropdown-item disabled">Tidak ada mata pelajaran</span></li>
+                        )}
+                      </ul>
+                    </div>
+                    {editScheduleForm.subject_id && (
+                      <div className="form-text text-info">
+                        ID Mata Pelajaran yang dipilih: <strong>{editScheduleForm.subject_id}</strong>
+                      </div>
+                    )}
                   </div>
                   <div className="mb-3">
                     <label htmlFor="edit-schedule-day" className="form-label">Hari</label>
@@ -1330,7 +1846,7 @@ function ClassManagement() {
               <div className="modal-body">
                 <p>Apakah Anda yakin ingin menghapus jadwal ini?</p>
                 <div className="alert alert-warning">
-                  <strong>Mata Pelajaran:</strong> {selectedSchedule.subject_id}<br />
+                  <strong>Mata Pelajaran:</strong> {getSubjectName(selectedSchedule.subject_id)}<br />
                   <strong>Hari:</strong> {selectedSchedule.day}<br />
                   <strong>Waktu:</strong> {selectedSchedule.start_time} - {selectedSchedule.end_time}
                 </div>

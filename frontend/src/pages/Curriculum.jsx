@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { curriculumsAPI } from '../utils/api';
 import { toast } from 'react-toastify';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 const Curriculum = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -30,6 +32,7 @@ const Curriculum = () => {
         const curriculum = response;
         setCurriculumData(prevData => ({
           ...prevData,
+          id: 0,
           name: curriculum.name,
           description: curriculum.description
         }));
@@ -52,7 +55,7 @@ const Curriculum = () => {
         description: curriculumData.description  // Changed to match API
       };
 
-      const response = await (curriculumData.id
+      const response = await (curriculumData.id !== null && curriculumData.id !== undefined
         ? curriculumsAPI.update(curriculumData.id, payload)
         : curriculumsAPI.create(payload));
 
@@ -135,14 +138,15 @@ const Curriculum = () => {
           </div>
 
           {!isEditing ? (
-            <p className="mb-0">{curriculumData.description || 'No description available.'}</p>
+            <div dangerouslySetInnerHTML={{ __html: curriculumData.description || '<p>No description available.</p>' }} />
           ) : (
-            <textarea
-              className="form-control"
-              rows="10"
-              value={curriculumData.description}
-              onChange={(e) => setCurriculumData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Enter curriculum description"
+            <CKEditor
+              editor={ClassicEditor}
+              data={curriculumData.description}
+              onChange={(event, editor) => {
+                const data = editor.getData();
+                setCurriculumData(prev => ({ ...prev, description: data }));
+              }}
             />
           )}
         </div>

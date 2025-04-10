@@ -21,12 +21,26 @@ const getHeaders = () => {
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      message: 'Something went wrong'
-    }));
-    throw new Error(error.message || 'Something went wrong');
+    console.error('API Error Response Status:', response.status, response.statusText);
+    let errorBody = 'Could not read error body';
+    try {
+      errorBody = await response.text();
+      console.error('API Error Response Body:', errorBody);
+      const errorJson = JSON.parse(errorBody);
+      throw new Error(errorJson.message || errorBody || 'Something went wrong');
+    } catch (e) {
+      throw new Error(errorBody || 'Something went wrong');
+    }
   }
-  return response.json();
+  try {
+    return await response.json();
+  } catch (e) {
+    if (response.status === 204) {
+      return null;
+    }
+    console.error('Failed to parse successful API response:', e);
+    throw new Error('Received invalid response format from server');
+  }
 };
 
 // Common fetch options
@@ -687,7 +701,7 @@ export const curriculumsAPI = {
     }).then(handleResponse),
 
   update: (id, curriculumData) =>
-    fetch(`${API_BASE_URL}/curriculums/${id}`, {
+    fetch(`${API_BASE_URL}/curriculums/0`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),

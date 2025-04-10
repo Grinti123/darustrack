@@ -26,15 +26,15 @@ const Curriculum = () => {
       const response = await curriculumsAPI.getAll();
       console.log('Raw API Response:', response);
 
-      if (response && response.data) {
-        const curriculum = response.data;
-        setCurriculumData({
-          id: curriculum.id,
-          name: 'KURIKULUM SEKOLAH DASAR ISLAM TERPADU DARUSSALAM BATAM',
-          description: 'Kurikulum sekolah mengacu pada Kurikulum 2013 dengan berbagai pengembangan dan inovasi dalam implementasinya sesuai dengan prinsip-prinsip sekolah Islam terpadu.',
-          createdAt: curriculum.created_at,
-          updatedAt: curriculum.updated_at
-        });
+      if (response && response.name && response.description) {
+        const curriculum = response;
+        setCurriculumData(prevData => ({
+          ...prevData,
+          name: curriculum.name,
+          description: curriculum.description
+        }));
+      } else {
+        console.warn('Received invalid or empty curriculum response:', response);
       }
     } catch (err) {
       console.error('Error:', err);

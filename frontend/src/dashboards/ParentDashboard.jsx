@@ -1,122 +1,142 @@
-import React from 'react'
-import StudentProgressChart from '../components/StudentProgressChart'
-import AttendanceChart from '../components/AttendaceChart'
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { authAPI, parentsAPI } from '../utils/api'
+import { toast } from 'react-toastify';
 
-function ParentDashboard({ student }) {
+function ParentDashboard() {
+  const { currentUser } = useAuth()
+  const [userProfile, setUserProfile] = useState(null)
+  const [parentProfile, setParentProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const fetchProfileData = async () => {
+    try {
+      setLoading(true)
+
+      // Fetch user profile from auth API
+      const userData = await authAPI.getProfile()
+      console.log('User profile data:', userData)
+      setUserProfile(userData)
+
+      // Fetch parent-specific profile
+      const parentData = await parentsAPI.getProfile()
+      console.log('Parent profile data:', parentData)
+      setParentProfile(parentData)
+
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+      setError('Failed to load profile data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchProfileData()
+    }
+  }, [currentUser])
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-danger" role="alert">
+        <i className="bi bi-exclamation-triangle me-2"></i>
+        {error}
+        <button
+          className="btn btn-sm btn-danger ms-3"
+          onClick={fetchProfileData}
+        >
+          Coba Lagi
+        </button>
+      </div>
+    )
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="alert alert-info" role="alert">
+        <i className="bi bi-info-circle me-2"></i>
+        Tidak ada data profil yang tersedia.
+        <button
+          className="btn btn-sm btn-primary ms-3"
+          onClick={fetchProfileData}
+        >
+          Refresh
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <div className="d-flex align-items-center">
-                <div className="avatar-lg me-3 bg-light rounded-circle d-flex align-items-center justify-content-center">
-                  <span className="display-6 text-primary">{student.name.charAt(0)}</span>
-                </div>
-                <div>
-                  <h4 className="mb-1">{student.name}</h4>
-                  <p className="text-muted mb-0">Kelas {student.class}</p>
-                </div>
-              </div>
-              <hr />
-              <div className="mb-3">
-                <p className="mb-1 text-muted">Wali Kelas</p>
-                <p className="fw-bold mb-0">{student.homeRoomTeacher}</p>
-              </div>
-              <div className="mb-3">
-                <p className="mb-1 text-muted">Tanggal Lahir</p>
-                <p className="fw-bold mb-0">{student.birthDate}</p>
-              </div>
-              <div className="mb-3">
-                <p className="mb-1 text-muted">Tingkah Laku</p>
-                <p className="fw-bold mb-0">{student.behavior}</p>
-              </div>
-            </div>
-          </div>
+      {/* User Profile Card */}
+      <div className="card mb-4">
+        <div className="card-header bg-white">
+          <h5 className="card-title mb-0">Profil Pengguna</h5>
         </div>
-        <div className="col-md-8">
-          <div className="card h-100">
-            <div className="card-header bg-white">
-              <h5 className="card-title mb-0">Proses Akademis</h5>
+        <div className="card-body">
+          <div className="d-flex align-items-center mb-4">
+            <div className="avatar-lg me-3 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center">
+              <span className="display-5 text-primary">{userProfile.name ? userProfile.name.charAt(0) : '?'}</span>
             </div>
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-6">
-                  <StudentProgressChart />
-                </div>
-                <div className="col-md-6">
-                  <AttendanceChart attendance={student.attendance} />
-                </div>
-              </div>
+            <div>
+              <h3 className="mb-1">{userProfile.name || 'Unnamed User'}</h3>
+              <p className="text-muted mb-0">
+                <i className="bi bi-envelope me-2"></i>
+                {userProfile.email || '-'}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="row">
-        <div className="col-md-7">
-          <div className="card">
-            <div className="card-header bg-white d-flex justify-content-between align-items-center">
-              <h5 className="card-title mb-0">Nilai Terakhir</h5>
-              <a href="/academic-assessment" className="btn btn-sm btn-outline-primary">Lihat Semua</a>
-            </div>
-            <div className="card-body">
-              <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Mapel</th>
-                      <th>Nilai</th>
-                      <th>Skor</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {student.recentGrades.map((grade, index) => (
-                      <tr key={index}>
-                        <td>{grade.subject}</td>
-                        <td>{grade.grade}</td>
-                        <td>{grade.score}</td>
-                        <td>
-                          {grade.score >= 90 ? (
-                            <span className="badge bg-success">Sempurna</span>
-                          ) : grade.score >= 80 ? (
-                            <span className="badge bg-primary">Baik</span>
-                          ) : (
-                            <span className="badge bg-warning">Perlu Perubahan</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {/* Parent Profile Data - Child Information */}
+      {parentProfile && (
+        <div className="card">
+          <div className="card-header bg-white">
+            <h5 className="card-title mb-0">Data Anak</h5>
+          </div>
+          <div className="card-body">
+            {!parentProfile.name ? (
+              <div className="alert alert-info">
+                <i className="bi bi-info-circle me-2"></i>
+                Tidak ada data anak yang tersedia.
               </div>
-            </div>
+            ) : (
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <p className="text-muted mb-1">Nama</p>
+                  <p className="fw-bold mb-0">{parentProfile.name || '-'}</p>
+                </div>
+                <div className="col-md-6 mb-3">
+                  <p className="text-muted mb-1">NISN</p>
+                  <p className="fw-bold mb-0">{parentProfile.nisn || '-'}</p>
+                </div>
+                <div className="col-md-6 mb-3">
+                  <p className="text-muted mb-1">Tanggal Lahir</p>
+                  <p className="fw-bold mb-0">{parentProfile.birth_date || '-'}</p>
+                </div>
+                <div className="col-md-6 mb-3">
+                  <p className="text-muted mb-1">Kelas</p>
+                  <p className="fw-bold mb-0">{parentProfile.class && parentProfile.class.name ? parentProfile.class.name : '-'}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="col-md-5">
-          <div className="card">
-            <div className="card-header bg-white">
-              <h5 className="card-title mb-0">Tugas</h5>
-            </div>
-            <div className="card-body">
-              <ul className="list-group list-group-flush">
-                {student.upcomingTests.map((test, index) => (
-                  <li key={index} className="list-group-item px-0">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="mb-1">{test.subject}</h6>
-                        <small className="text-muted">{test.topic}</small>
-                      </div>
-                      <span className="badge bg-light text-dark">{test.date}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

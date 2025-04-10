@@ -10,12 +10,13 @@ import Subjects from './pages/Subjects'
 import Attendance from './pages/Attendance'
 import AcademicAssessment from './pages/AcademicAssessment'
 import Schedule from './pages/Schedule'
-import EvaluationNotes from './pages/EvaluationNotes'
+import Evaluations from './pages/Evaluations'
 import StudentAssessment from './pages/StudentAssessment'
 import DashboardLayout from './layouts/DashboardLayout'
 import UserManagement from './pages/UserManagement'
 import SubjectManagement from './pages/SubjectManagement'
 import ClassManagement from './pages/ClassManagement'
+import SubjectDetail from './pages/SubjectDetail'
 
 function App() {
   const { currentUser, userRole } = useAuth()
@@ -38,7 +39,7 @@ function App() {
       <Route path="/login" element={<Login />} />
 
       <Route path="/" element={
-        <ProtectedRoute allowedRoles={['admin', 'wali_kelas', 'orang_tua', 'principal']}>
+        <ProtectedRoute allowedRoles={['admin', 'wali_kelas', 'orang_tua', 'kepala_sekolah']}>
           <DashboardLayout />
         </ProtectedRoute>
       }>
@@ -51,6 +52,11 @@ function App() {
         <Route path="subjects" element={
           <ProtectedRoute>
             <SubjectManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="subjects/:subjectId" element={
+          <ProtectedRoute>
+            <SubjectDetail />
           </ProtectedRoute>
         } />
 
@@ -75,7 +81,7 @@ function App() {
 
         <Route path="evaluation-notes" element={
           <ProtectedRoute allowedRoles={['orang_tua', 'wali_kelas', 'admin']}>
-            <EvaluationNotes />
+            <Evaluations />
           </ProtectedRoute>
         } />
 
@@ -95,7 +101,7 @@ function App() {
 
         {/* Principal-only Routes */}
         <Route path="student-assessment" element={
-          <ProtectedRoute allowedRoles={['principal']}>
+          <ProtectedRoute allowedRoles={['kepala_sekolah']}>
             <StudentAssessment />
           </ProtectedRoute>
         } />

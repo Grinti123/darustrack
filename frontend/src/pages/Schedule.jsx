@@ -1,104 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { teachersAPI, studentsAPI } from '../utils/api';
+import { toast } from 'react-toastify';
+import ParentSchedule from '../components/ParentSchedule';
 
 const Schedule = () => {
   const { userRole } = useAuth();
   const [activeDay, setActiveDay] = useState('Senin');
   const [scheduleData, setScheduleData] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  // Mock data - in a real app this would come from an API
-  useEffect(() => {
-    // Student schedule data
-    const studentSchedule = {
-      'Senin': [
-        { subject: 'Matematika', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'Bahasa Indonesia', timeStart: '08.35', timeEnd: '10.00' },
-        { subject: 'PPKN', timeStart: '10.30', timeEnd: '12.00' },
-        { subject: 'Seni Budaya', timeStart: '13.00', timeEnd: '14.30' }
-      ],
-      'Selasa': [
-        { subject: 'Bahasa Inggris', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'IPA', timeStart: '08.35', timeEnd: '10.00' },
-        { subject: 'Penjas', timeStart: '10.30', timeEnd: '12.00' }
-      ],
-      'Rabu': [
-        { subject: 'IPS', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'Matematika', timeStart: '08.35', timeEnd: '10.00' },
-        { subject: 'Agama', timeStart: '10.30', timeEnd: '12.00' }
-      ],
-      'Kamis': [
-        { subject: 'Bahasa Indonesia', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'IPA', timeStart: '08.35', timeEnd: '10.00' },
-        { subject: 'Prakarya', timeStart: '10.30', timeEnd: '12.00' }
-      ],
-      'Jumat': [
-        { subject: 'Matematika', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'Bahasa Inggris', timeStart: '08.35', timeEnd: '10.00' }
-      ],
-      'Sabtu': [
-        { subject: 'Komputer', timeStart: '07.15', timeEnd: '08.30' },
-        { subject: 'Muatan Lokal', timeStart: '08.35', timeEnd: '10.00' }
-      ]
-    };
+  // If user is a parent, render the ParentSchedule component
+  if (userRole === 'orang_tua') {
+    return <ParentSchedule />;
+  }
 
-    // Teacher schedule data - classes to teach
-    const teacherSchedule = {
-      'Senin': [
-        {
-          subject: 'Matematika',
-          timeStart: '07.15',
-          timeEnd: '08.30',
-          class: 'Kelas 5A'
-        },
-        {
-          subject: 'Matematika',
-          timeStart: '10.30',
-          timeEnd: '12.00',
-          class: 'Kelas 6B'
-        }
-      ],
-      'Selasa': [
-        {
-          subject: 'Matematika',
-          timeStart: '08.35',
-          timeEnd: '10.00',
-          class: 'Kelas 6A'
-        }
-      ],
-      'Rabu': [
-        {
-          subject: 'Matematika',
-          timeStart: '08.35',
-          timeEnd: '10.00',
-          class: 'Kelas 5B'
-        }
-      ],
-      'Kamis': [
-        {
-          subject: 'Matematika',
-          timeStart: '13.00',
-          timeEnd: '14.30',
-          class: 'Kelas 6C'
-        }
-      ],
-      'Jumat': [
-        {
-          subject: 'Matematika',
-          timeStart: '07.15',
-          timeEnd: '08.30',
-          class: 'Kelas 5C'
-        }
-      ],
-      'Sabtu': []
-    };
+  const fetchSchedule = async (day) => {
+    try {
+      setLoading(true);
+      let response;
 
-    // Set appropriate schedule based on user role
-    if (userRole === 'teacher') {
-      setScheduleData(teacherSchedule);
-    } else {
-      setScheduleData(studentSchedule);
+      if (userRole === 'teacher' || userRole === 'wali_kelas') {
+        response = await teachersAPI.getSchedule(day);
+      } else if (userRole === 'student') {
+        response = await studentsAPI.getSchedule(day);
+      } else {
+        throw new Error('Unauthorized');
+      }
+
+      console.log('Schedule response:', response);
+
+      // Group schedule by day
+      const scheduleByDay = {};
+      if (Array.isArray(response)) {
+        response.forEach(item => {
+          if (!scheduleByDay[item.day]) {
+            scheduleByDay[item.day] = [];
+          }
+          scheduleByDay[item.day].push({
+            subject: item.subject.name,
+            timeStart: item.start_time,
+            timeEnd: item.end_time,
+            ...(userRole === 'teacher' ? { class: item.class_id } : {})
+          });
+        });
+      }
+
+      setScheduleData(scheduleByDay);
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      toast.error('Gagal mengambil jadwal');
+    } finally {
+      setLoading(false);
     }
-  }, [userRole]);
+  };
+
+  // Fetch schedule when day changes or on component mount
+  useEffect(() => {
+    if (['teacher', 'wali_kelas', 'student'].includes(userRole)) {
+      fetchSchedule(activeDay.toLowerCase());
+    }
+  }, [userRole, activeDay]);
 
   // Define colors for each day
   const dayColors = {
@@ -119,9 +81,20 @@ const Schedule = () => {
 
   const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
+  // Only allow teacher, wali_kelas, student, and orang_tua roles
+  if (!['teacher', 'wali_kelas', 'student', 'orang_tua'].includes(userRole)) {
+    return (
+      <div className="container py-4">
+        <div className="alert alert-warning">
+          Anda tidak memiliki akses ke halaman ini
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-4">
-      <h2 className="mb-4">Jadwal Pelajaran</h2>
+      <h2 className="mb-4">Jadwal Pelajaran {['teacher', 'wali_kelas'].includes(userRole) ? 'Guru' : 'Siswa'}</h2>
 
       {/* Day tabs with different colors */}
       <div className="d-flex mb-4 overflow-auto">
@@ -148,7 +121,13 @@ const Schedule = () => {
         <div className="card-body">
           <h4 className={`card-title text-${dayColors[activeDay]} mb-4`}>{activeDay}</h4>
 
-          {scheduleData[activeDay] && scheduleData[activeDay].length > 0 ? (
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : scheduleData[activeDay] && scheduleData[activeDay].length > 0 ? (
             scheduleData[activeDay].map((schedule, index) => (
               <div
                 key={index}
@@ -157,8 +136,8 @@ const Schedule = () => {
                 <div className="card-body d-flex justify-content-between align-items-center">
                   <div>
                     <h5 className="mb-1">{schedule.subject}</h5>
-                    {userRole === 'teacher' && (
-                      <div className="text-muted small">{schedule.class}</div>
+                    {['teacher', 'wali_kelas'].includes(userRole) && (
+                      <div className="text-muted small">Kelas {schedule.class}</div>
                     )}
                   </div>
                   <div className="text-end">
@@ -171,7 +150,7 @@ const Schedule = () => {
             ))
           ) : (
             <div className="text-center text-muted py-4">
-              No schedule for this day
+              Tidak ada jadwal untuk hari ini
             </div>
           )}
         </div>

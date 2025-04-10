@@ -1,10 +1,23 @@
 // components/Sidebar.jsx
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import logo from '../../assets/logo.png';
 
-function Sidebar() {
+function Sidebar({ isOpen, toggleSidebar }) {
   const { userRole } = useAuth();
-  const location = useLocation(); // This hook gives us the current location/route
+  const location = useLocation();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 992);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Define menu items for each role
   const menuItems = {
@@ -33,7 +46,7 @@ function Sidebar() {
       { title: 'Kelola Pengguna', path: '/user-management', icon: 'bi bi-people' },
       { title: 'Kelola Kelas', path: '/classes', icon: 'bi bi-building' }
     ],
-    principal: [
+    kepala_sekolah: [
       { title: 'Dashboard', path: '/dashboard', icon: 'bi bi-grid' },
       { title: 'Informasi Kurikulum', path: '/curriculum', icon: 'bi bi-info-circle' },
       { title: 'Informasi Penilaian Siswa', path: '/student-assessment', icon: 'bi bi-file-earmark-text' },
@@ -44,11 +57,38 @@ function Sidebar() {
   // Get menu items for current user role
   const currentMenuItems = menuItems[userRole] || [];
 
+  // Handle menu item click in mobile view
+  const handleMenuClick = () => {
+    if (isMobile && isOpen) {
+      toggleSidebar();
+    }
+  };
+
   return (
-    <div className="sidebar bg-white p-3 shadow-sm h-100 position-sticky top-0" style={{overflowY: 'auto', maxHeight: '100vh'}}>
-      <div className="text-center mb-4">
-        <img src="../src/assets/logo.png" alt="DarusTrack Logo" height="50" />
-        <h3 className="mt-2 text-primary">DarusTrack</h3>
+    <div className={`sidebar bg-white p-3 shadow-sm ${isOpen ? 'show' : ''}`}
+         style={{
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           bottom: 0,
+           width: isMobile ? '280px' : '320px',
+           zIndex: 1030,
+           overflowY: 'auto',
+           transition: 'transform 0.3s ease',
+           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+         }}>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center">
+          <img src={logo} alt="DarusTrack Logo" height="40" />
+          <h3 className="ms-2 mb-0 text-primary">DarusTrack</h3>
+        </div>
+        <button
+          className="btn btn-sm btn-outline-secondary d-lg-none"
+          onClick={toggleSidebar}
+          aria-label="Close sidebar"
+        >
+          <i className="bi bi-x-lg"></i>
+        </button>
       </div>
 
       <ul className="nav flex-column">
@@ -61,6 +101,7 @@ function Sidebar() {
               <Link
                 to={item.path}
                 className={`nav-link d-flex align-items-center ${isActive ? 'bg-primary text-white rounded' : 'text-dark'}`}
+                onClick={handleMenuClick}
               >
                 <i className={`${item.icon} me-2`}></i>
                 {item.title}

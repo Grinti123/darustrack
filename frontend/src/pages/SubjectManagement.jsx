@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { subjectsAPI } from '../utils/api'
+import { toast } from 'react-toastify';
 
 function SubjectManagement() {
   const [subjects, setSubjects] = useState([])
@@ -11,11 +12,7 @@ function SubjectManagement() {
   })
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editForm, setEditForm] = useState({
-    name: '',
-    description: ''
-  })
+  const [showAddModal, setShowAddModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { currentUser, userRole } = useAuth()
@@ -48,11 +45,6 @@ function SubjectManagement() {
     setNewSubject(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleEditInputChange = (e) => {
-    const { name, value } = e.target
-    setEditForm(prev => ({ ...prev, [name]: value }))
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -67,43 +59,12 @@ function SubjectManagement() {
       if (response) {
         setSubjects(prev => [...prev, response])
         setNewSubject({ name: '', description: '' })
+        setShowAddModal(false)
         setError(null)
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create subject')
       console.error('Error creating subject:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleEditClick = (subject) => {
-    setSelectedSubject(subject)
-    setEditForm({
-      name: subject.name,
-      description: subject.description
-    })
-    setShowEditModal(true)
-  }
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault()
-    if (!selectedSubject || userRole !== 'admin') return
-
-    try {
-      setLoading(true)
-      const response = await subjectsAPI.update(selectedSubject.id, editForm)
-      if (response) {
-        setSubjects(prev => prev.map(subject =>
-          subject.id === selectedSubject.id ? { ...subject, ...response } : subject
-        ))
-        setShowEditModal(false)
-        setSelectedSubject(null)
-        setError(null)
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update subject')
-      console.error('Error updating subject:', err)
     } finally {
       setLoading(false)
     }
@@ -138,7 +99,18 @@ function SubjectManagement() {
 
   return (
     <div className="container-fluid py-4">
-      <h2 className="mb-4">Kelola Mata Pelajaran</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0">Informasi Mata Pelajaran</h2>
+        {userRole === 'admin' && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            <i className="bi bi-plus-lg me-2"></i>
+            Tambah Mata Pelajaran
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="alert alert-danger" role="alert">
@@ -147,78 +119,70 @@ function SubjectManagement() {
         </div>
       )}
 
-      <div className="row">
-        <div className="col-md-8">
-          <div className="card">
-            <div className="card-header bg-white">
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="card-title mb-0">Daftar Mata Pelajaran</h5>
-              </div>
-            </div>
-            <div className="card-body">
-              {loading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>Nama</th>
-                        <th>Deskripsi</th>
-                        <th>Tanggal Dibuat</th>
-                        <th>Terakhir Diperbarui</th>
-                        {userRole === 'admin' && <th>Aksi</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Array.isArray(subjects) && subjects.map((subject) => (
-                        <tr key={subject.id}>
-                          <td>{subject.name}</td>
-                          <td>{subject.description}</td>
-                          <td>{subject.createdAt}</td>
-                          <td>{subject.updatedAt}</td>
-                          {userRole === 'admin' && (
-                            <td>
-                              <div className="btn-group">
-                                <button
-                                  className="btn btn-sm btn-outline-primary me-1"
-                                  onClick={() => handleEditClick(subject)}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-pencil"></i>
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => handleDeleteClick(subject)}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-trash"></i>
-                                </button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
         </div>
-
-        {userRole === 'admin' && (
-          <div className="col-md-4">
-            <div className="card">
-              <div className="card-header bg-white">
-                <h5 className="card-title mb-0">Tambah Mata Pelajaran Baru</h5>
+      ) : subjects.length === 0 ? (
+        <div className="alert alert-info">
+          <i className="bi bi-info-circle me-2"></i>
+          Belum ada mata pelajaran.
+        </div>
+      ) : (
+        <div className="d-flex flex-column gap-4">
+          {subjects.map((subject) => (
+            <div key={subject.id} className="card border rounded-3 shadow-sm">
+              <div className="card-body p-4">
+                <div className="row align-items-center">
+                  <div className="col-md-8">
+                    <h3 className="mb-2" style={{ color: '#0D6EFD' }}>{subject.name}</h3>
+                    <p className="mb-0 text-muted">
+                      {subject.description?.substring(0, 100)}
+                      {subject.description?.length > 100 ? '...' : ''}
+                    </p>
+                  </div>
+                  <div className="col-md-4 text-md-end mt-3 mt-md-0">
+                    <Link
+                      to={`/subjects/${subject.id}`}
+                      className="btn btn-outline-primary me-2"
+                    >
+                      <i className="bi bi-eye me-1"></i>
+                      Lihat Detail
+                    </Link>
+                    {userRole === 'admin' && (
+                      <button
+                        className="btn btn-outline-danger"
+                        onClick={() => handleDeleteClick(subject)}
+                        disabled={loading}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="card-body">
-                <form onSubmit={handleSubmit}>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Subject Modal */}
+      {showAddModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Tambah Mata Pelajaran Baru</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowAddModal(false)}
+                ></button>
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body">
                   <div className="mb-3">
                     <label htmlFor="name" className="form-label">Nama Mata Pelajaran</label>
                     <input
@@ -244,82 +208,12 @@ function SubjectManagement() {
                       disabled={loading}
                     ></textarea>
                   </div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-100"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Menambahkan...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-plus-lg me-2"></i>
-                        Tambah Mata Pelajaran
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && selectedSubject && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Edit Mata Pelajaran</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setSelectedSubject(null)
-                  }}
-                ></button>
-              </div>
-              <form onSubmit={handleEditSubmit}>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="edit-name" className="form-label">Nama Mata Pelajaran</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="edit-name"
-                      name="name"
-                      value={editForm.name}
-                      onChange={handleEditInputChange}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="edit-description" className="form-label">Deskripsi</label>
-                    <textarea
-                      className="form-control"
-                      id="edit-description"
-                      name="description"
-                      value={editForm.description}
-                      onChange={handleEditInputChange}
-                      rows="3"
-                      disabled={loading}
-                    ></textarea>
-                  </div>
                 </div>
                 <div className="modal-footer">
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => {
-                      setShowEditModal(false)
-                      setSelectedSubject(null)
-                    }}
+                    onClick={() => setShowAddModal(false)}
                     disabled={loading}
                   >
                     Batal
@@ -332,10 +226,10 @@ function SubjectManagement() {
                     {loading ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Menyimpan...
+                        Menambahkan...
                       </>
                     ) : (
-                      'Simpan Perubahan'
+                      'Tambah Mata Pelajaran'
                     )}
                   </button>
                 </div>

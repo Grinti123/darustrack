@@ -16,14 +16,16 @@ function UserManagement() {
     email: '',
     role: '',
     status: '',
-    class_id: ''
+    class_id: '',
+    nip: ''
   })
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
     password: '',
     role: 'orang_tua',
-    status: 'active'
+    status: 'active',
+    nip: ''
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -42,7 +44,12 @@ function UserManagement() {
     try {
       setLoading(true)
       const response = await usersAPI.getAll(roleFilter)
-      setUsers(Array.isArray(response) ? response : [])
+      // Ensure we have the class_id for each user
+      const usersWithClassId = Array.isArray(response) ? response.map(user => ({
+        ...user,
+        class_id: user.class_id || ''
+      })) : []
+      setUsers(usersWithClassId)
       setError(null)
     } catch (err) {
       setError('Failed to fetch users')
@@ -76,13 +83,19 @@ function UserManagement() {
       return
     }
 
+    // Validate NIP for wali_kelas role
+    if (newUser.role === 'wali_kelas' && !newUser.nip) {
+      setError('NIP is required for Wali Kelas')
+      return
+    }
+
     try {
       setLoading(true)
       const response = await usersAPI.create(newUser)
       // Add the new user to the list if response is successful
       if (response) {
         setUsers(prev => [...prev, response])
-        setNewUser({ name: '', email: '', password: '', role: 'orang_tua', status: 'active' })
+        setNewUser({ name: '', email: '', password: '', role: 'orang_tua', status: 'active', nip: '' })
         setError(null)
       }
     } catch (err) {
@@ -124,13 +137,23 @@ function UserManagement() {
     try {
       setLoading(true)
       const response = await usersAPI.getById(id)
-      setSelectedUser(response)
-      setEditForm({
-        name: response.name,
-        email: response.email,
-        role: response.role,
-        status: response.status,
+
+      // Ensure we have the class_id from the API response
+      const userData = {
+        ...response,
         class_id: response.class_id || ''
+      }
+
+      console.log('User data:', userData) // Add this for debugging
+
+      setSelectedUser(userData)
+      setEditForm({
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        status: userData.status,
+        class_id: userData.class_id || '',
+        nip: userData.nip || ''
       })
       setShowDetailsModal(true)
       setError(null)
@@ -153,7 +176,8 @@ function UserManagement() {
       email: selectedUser.email,
       role: selectedUser.role,
       status: selectedUser.status,
-      class_id: selectedUser.class_id || ''
+      class_id: selectedUser.class_id || '',
+      nip: selectedUser.nip || ''
     })
   }
 
@@ -167,20 +191,47 @@ function UserManagement() {
 
     try {
       setLoading(true)
-      const response = await usersAPI.update(selectedUser.id, editForm)
+      setError(null)
+
+      // Validate NIP for wali_kelas role
+      if (editForm.role === 'wali_kelas' && !editForm.nip) {
+        setError('NIP is required for Wali Kelas')
+        return
+      }
+
+      // Include class_id in the update data even if empty
+      const updateData = {
+        ...editForm,
+        class_id: editForm.class_id // Always include class_id
+      }
+
+      // Ensure required fields are present
+      if (!updateData.name || !updateData.email || !updateData.role || !updateData.status) {
+        throw new Error('Please fill in all required fields')
+      }
+
+      const response = await usersAPI.update(selectedUser.id, updateData)
 
       // Update the users list with the edited user
-      setUsers(users.map(user =>
+      setUsers(prevUsers => prevUsers.map(user =>
         user.id === selectedUser.id ? { ...user, ...response } : user
       ))
 
       // Update the selected user view
-      setSelectedUser({ ...selectedUser, ...response })
+      setSelectedUser(prev => ({ ...prev, ...response }))
       setIsEditing(false)
       setError(null)
+
+      // Show success message
+      const successMessage = document.createElement('div')
+      successMessage.className = 'alert alert-success'
+      successMessage.textContent = 'User updated successfully'
+      document.querySelector('.modal-body').insertBefore(successMessage, document.querySelector('.modal-body').firstChild)
+      setTimeout(() => successMessage.remove(), 3000)
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update user')
       console.error('Error updating user:', err)
+      setError(err.message || 'Failed to update user. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -266,9 +317,11 @@ function UserManagement() {
                 <table className="table table-hover">
                   <thead>
                     <tr>
+                      <th width="5%">ID</th>
                       <th>Nama</th>
                       <th>Email</th>
                       <th>Peran</th>
+                      <th>Kelas</th>
                       <th>Status</th>
                       <th>Aksi</th>
                     </tr>
@@ -276,6 +329,7 @@ function UserManagement() {
                   <tbody>
                     {Array.isArray(users) && users.map((user) => (
                       <tr key={user.id || Math.random()}>
+                        <td>{user.id}</td>
                         <td>{user.name}</td>
                         <td>{user.email}</td>
                         <td>
@@ -283,6 +337,15 @@ function UserManagement() {
                           {user.role === 'wali_kelas' && <span className="badge bg-primary">Guru</span>}
                           {user.role === 'orang_tua' && <span className="badge bg-success">Orang Tua</span>}
                           {user.role === 'kepala_sekolah' && <span className="badge bg-warning">Kepala Sekolah</span>}
+                        </td>
+                        <td>
+                          {user.role === 'wali_kelas' && (
+                            user.class_id ? (
+                              <span className="badge bg-info">{user.class_id}</span>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )
+                          )}
                         </td>
                         <td>
                           {user.status === 'active' ? (
@@ -337,94 +400,89 @@ function UserManagement() {
             </div>
             <div className="card-body">
               <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="name" className="form-label">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="name"
-                    name="name"
-                    value={newUser.name}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="email" className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    name="email"
-                    value={newUser.email}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="password"
-                    name="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    required
-                    minLength={6}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="role" className="form-label">Peran</label>
-                  <select
-                    className="form-select"
-                    id="role"
-                    name="role"
-                    value={newUser.role}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  >
-                    <option value="orang_tua">Orang Tua</option>
-                    <option value="admin">Admin</option>
-                    <option value="kepala_sekolah">Kepala Sekolah</option>
-                    <option value="wali_kelas">Wali Kelas</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="status" className="form-label">Status</label>
-                  <select
-                    className="form-select"
-                    id="status"
-                    name="status"
-                    value={newUser.status}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  >
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Tidak Aktif</option>
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  className="btn btn-primary w-100"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Menambahkan...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-person-plus me-2"></i>
-                      Tambah Pengguna
-                    </>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="name" className="form-label">Nama</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="name"
+                      name="name"
+                      value={newUser.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="email" className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      id="email"
+                      name="email"
+                      value={newUser.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="password" className="form-label">Password</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      id="password"
+                      name="password"
+                      value={newUser.password}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="role" className="form-label">Role</label>
+                    <select
+                      className="form-select"
+                      id="role"
+                      name="role"
+                      value={newUser.role}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="orang_tua">Orang Tua</option>
+                      <option value="wali_kelas">Wali Kelas</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  {newUser.role === 'wali_kelas' && (
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="nip" className="form-label">NIP</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="nip"
+                        name="nip"
+                        value={newUser.nip}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
                   )}
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="status" className="form-label">Status</label>
+                    <select
+                      className="form-select"
+                      id="status"
+                      name="status"
+                      value={newUser.status}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Adding...' : 'Add User'}
                 </button>
               </form>
             </div>
@@ -544,18 +602,32 @@ function UserManagement() {
                       </select>
                     </div>
                     {editForm.role === 'wali_kelas' && (
-                      <div className="mb-3">
-                        <label htmlFor="edit-class-id" className="form-label">ID Kelas</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="edit-class-id"
-                          name="class_id"
-                          value={editForm.class_id}
-                          onChange={handleEditChange}
-                          disabled={loading}
-                        />
-                      </div>
+                      <>
+                        <div className="mb-3">
+                          <label htmlFor="edit-nip" className="form-label">NIP</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="edit-nip"
+                            name="nip"
+                            value={editForm.nip}
+                            onChange={handleEditChange}
+                            required
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="edit-class-id" className="form-label">ID Kelas</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="edit-class-id"
+                            name="class_id"
+                            value={editForm.class_id}
+                            onChange={handleEditChange}
+                            placeholder="Masukkan ID kelas yang ditugaskan"
+                          />
+                        </div>
+                      </>
                     )}
                     <div className="mb-3">
                       <label htmlFor="edit-status" className="form-label">Status</label>
@@ -629,11 +701,23 @@ function UserManagement() {
                         )}
                       </p>
                     </div>
-                    {selectedUser.role === 'wali_kelas' && selectedUser.class_id && (
-                      <div className="mb-3">
-                        <label className="fw-bold">ID Kelas</label>
-                        <p>{selectedUser.class_id}</p>
-                      </div>
+                    {selectedUser.role === 'wali_kelas' && (
+                      <>
+                        <div className="mb-3">
+                          <label className="fw-bold">NIP</label>
+                          <p>{selectedUser.nip || '-'}</p>
+                        </div>
+                        <div className="mb-3">
+                          <label className="fw-bold">ID Kelas</label>
+                          <p>
+                            {selectedUser.class_id ? (
+                              <span className="badge bg-info">{selectedUser.class_id}</span>
+                            ) : (
+                              <span className="text-muted">Belum ditugaskan</span>
+                            )}
+                          </p>
+                        </div>
+                      </>
                     )}
                     <div className="mb-3">
                       <label className="fw-bold">Tanggal Dibuat</label>

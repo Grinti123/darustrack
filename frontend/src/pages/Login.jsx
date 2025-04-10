@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import logo from '../assets/logo.png'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -27,16 +28,17 @@ function Login() {
       // Redirect based on user role
       switch (user.role) {
         case 'admin':
-          navigate('/user-management')
+          navigate('/dashboard')
           break
         case 'wali_kelas':
           navigate('/dashboard')
           break
         case 'orang_tua':
-          navigate('/academic-assessment')
+          navigate('/dashboard')
           break
-        case 'principal':
-          navigate('/student-assessment')
+        case 'kepala_sekolah':
+          console.log('Logged in as Kepala Sekolah:', user)
+          navigate('/dashboard')
           break
         default:
           navigate('/dashboard')
@@ -55,7 +57,7 @@ function Login() {
           <div className="card shadow-sm">
             <div className="card-body p-5">
               <div className="text-center mb-4">
-                <img src="/logo.png" alt="DarusTrack Logo" height="60" />
+                <img src={logo} alt="DarusTrack Logo" height="60" />
                 <h2 className="mt-3 text-primary">DarusTrack</h2>
                 <p className="text-muted">Academic Monitoring System</p>
               </div>

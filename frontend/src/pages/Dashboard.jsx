@@ -10,9 +10,16 @@ function Dashboard() {
   const [student, setStudent] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  console.log('Dashboard rendering with userRole:', userRole)
+
   useEffect(() => {
     // Simulating API call to get student data
     setIsLoading(true)
+
+    // Log when dashboard is loaded for kepala_sekolah
+    if (userRole === 'kepala_sekolah') {
+      console.log('Kepala Sekolah dashboard is loading...')
+    }
 
     // In a real app, this would be an API call
     setTimeout(() => {
@@ -54,27 +61,12 @@ function Dashboard() {
     <div className="container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Dashboard</h2>
-        <div className="d-flex">
-          <div className="dropdown me-2">
-            <button className="btn btn-outline-secondary dropdown-toggle" type="button" id="periodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-              Current Period
-            </button>
-            <ul className="dropdown-menu" aria-labelledby="periodDropdown">
-              <li><a className="dropdown-item" href="#">Current Period</a></li>
-              <li><a className="dropdown-item" href="#">Previous Period</a></li>
-              <li><a className="dropdown-item" href="#">Last Year</a></li>
-            </ul>
-          </div>
-          <button className="btn btn-primary">
-            <i className="bi bi-download me-2"></i>Export Data
-          </button>
-        </div>
       </div>
 
       {userRole === 'orang_tua' && student && <ParentDashboard student={student} />}
       {userRole === 'wali_kelas' && <TeacherDashboard />}
       {userRole === 'admin' && <AdminDashboard />}
-      {userRole === 'principal' && <PrincipalDashboard />}
+      {userRole === 'kepala_sekolah' && <PrincipalDashboard />}
 
       <div className="row mt-4">
         <div className="col-md-7">

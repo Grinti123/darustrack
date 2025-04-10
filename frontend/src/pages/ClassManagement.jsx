@@ -483,6 +483,7 @@ function ClassManagement() {
                 <table className="table table-hover">
                   <thead>
                     <tr>
+                        <th width="5%">ID</th>
                         <th>Nama</th>
                         <th>Tingkat</th>
                         <th>Deskripsi</th>
@@ -494,6 +495,7 @@ function ClassManagement() {
                   <tbody>
                       {Array.isArray(classes) && classes.map((classItem) => (
                       <tr key={classItem.id}>
+                        <td>{classItem.id}</td>
                         <td>{classItem.name}</td>
                           <td>{classItem.level}</td>
                           <td>{classItem.description}</td>
@@ -537,7 +539,7 @@ function ClassManagement() {
                     ))}
                       {classes.length === 0 && (
                         <tr>
-                          <td colSpan={userRole === 'admin' ? 6 : 5} className="text-center">
+                          <td colSpan={userRole === 'admin' ? 7 : 6} className="text-center">
                             Tidak ada kelas yang ditemukan
                           </td>
                         </tr>
@@ -787,150 +789,128 @@ function ClassManagement() {
       </div>
       )}
 
-      {/* Add Student Modal */}
+      {/* Student List Modal */}
       {showAddStudentModal && selectedClass && (
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Tambah Siswa ke Kelas {selectedClass.name}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowAddStudentModal(false)
-                    setSelectedClass(null)
-                    setNewStudent({ name: '', nisn: '', birth_date: '', parent_id: '' })
-                  }}
-                ></button>
+                <h5 className="modal-title">Kelola Siswa - Kelas {selectedClass.name}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowAddStudentModal(false)}></button>
               </div>
               <div className="modal-body">
-                <form onSubmit={handleAddStudentSubmit}>
-                  <div className="mb-3">
-                    <label htmlFor="student-name" className="form-label">Nama Siswa</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="student-name"
-                      name="name"
-                      value={newStudent.name}
-                      onChange={handleStudentInputChange}
-                      required
-                      disabled={loading}
-                    />
+                {error && (
+                  <div className="alert alert-danger" role="alert">
+                    {error}
                   </div>
-                  <div className="mb-3">
-                    <label htmlFor="student-nisn" className="form-label">NISN</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="student-nisn"
-                      name="nisn"
-                      value={newStudent.nisn}
-                      onChange={handleStudentInputChange}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="student-birth-date" className="form-label">Tanggal Lahir</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="student-birth-date"
-                      name="birth_date"
-                      value={newStudent.birth_date}
-                      onChange={handleStudentInputChange}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="student-parent-id" className="form-label">ID Orang Tua</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="student-parent-id"
-                      name="parent_id"
-                      value={newStudent.parent_id}
-                      onChange={handleStudentInputChange}
-                      required
-                      disabled={loading}
-                      placeholder="Masukkan ID Orang Tua"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-100"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Menambahkan...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-plus-lg me-2"></i>
-                        Tambah Siswa
-                      </>
-                    )}
-                  </button>
-                </form>
+                )}
 
-                <div className="mt-4">
-                  <h6>Daftar Siswa dalam Kelas</h6>
-                  <div className="table-responsive">
-                    <table className="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>Nama</th>
-                          <th>NISN</th>
-                          <th>Tanggal Lahir</th>
-                          <th>ID Orang Tua</th>
-                          {userRole === 'admin' && <th>Aksi</th>}
+                {/* Student List Table */}
+                <div className="table-responsive mb-3">
+                  <table className="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>NISN</th>
+                        <th>Tanggal Lahir</th>
+                        <th>ID Orang Tua</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((student) => (
+                        <tr key={student.id}>
+                          <td>{student.id}</td>
+                          <td>{student.name}</td>
+                          <td>{student.nisn}</td>
+                          <td>{new Date(student.birth_date).toLocaleDateString('id-ID')}</td>
+                          <td>{student.parent_id}</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-outline-primary me-1"
+                              onClick={() => handleEditStudentClick(student)}
+                              disabled={loading}
+                            >
+                              <i className="bi bi-pencil"></i>
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => handleDeleteStudentClick(student)}
+                              disabled={loading}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {students.map((student) => (
-                          <tr key={student.id}>
-                            <td>{student.name}</td>
-                            <td>{student.nisn}</td>
-                            <td>{new Date(student.birth_date).toLocaleDateString('id-ID')}</td>
-                            <td>{student.parent_id}</td>
-                            {userRole === 'admin' && (
-                              <td>
-                                <div className="btn-group">
-                                  <button
-                                    className="btn btn-sm btn-outline-primary me-1"
-                                    onClick={() => handleEditStudentClick(student)}
-                                    disabled={loading}
-                                  >
-                                    <i className="bi bi-pencil"></i>
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => handleDeleteStudentClick(student)}
-                                    disabled={loading}
-                                  >
-                                    <i className="bi bi-trash"></i>
-                                  </button>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                        {students.length === 0 && (
-                          <tr>
-                            <td colSpan={userRole === 'admin' ? 5 : 4} className="text-center">
-                              Belum ada siswa dalam kelas ini
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+
+                {/* Add Student Form */}
+                <form onSubmit={handleAddStudentSubmit}>
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="name" className="form-label">Nama Siswa</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="name"
+                        name="name"
+                        value={newStudent.name}
+                        onChange={handleStudentInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="nisn" className="form-label">NISN</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="nisn"
+                        name="nisn"
+                        value={newStudent.nisn}
+                        onChange={handleStudentInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="birth_date" className="form-label">Tanggal Lahir</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        id="birth_date"
+                        name="birth_date"
+                        value={newStudent.birth_date}
+                        onChange={handleStudentInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="parent_id" className="form-label">ID Orang Tua</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="parent_id"
+                        name="parent_id"
+                        value={newStudent.parent_id}
+                        onChange={handleStudentInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="text-end">
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                      {loading ? 'Menambahkan...' : 'Tambah Siswa'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddStudentModal(false)}>
+                  Tutup
+                </button>
               </div>
             </div>
           </div>
@@ -943,84 +923,76 @@ function ClassManagement() {
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Edit Data Siswa</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowEditStudentModal(false)
-                    setSelectedStudent(null)
-                  }}
-                ></button>
+                <h5 className="modal-title">Edit Siswa</h5>
+                <button type="button" className="btn-close" onClick={() => setShowEditStudentModal(false)}></button>
               </div>
               <div className="modal-body">
                 <form onSubmit={handleEditStudentSubmit}>
                   <div className="mb-3">
-                    <label htmlFor="edit-student-name" className="form-label">Nama Siswa</label>
+                    <label className="form-label">ID Siswa</label>
                     <input
                       type="text"
                       className="form-control"
-                      id="edit-student-name"
+                      value={selectedStudent.id}
+                      disabled
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="edit-name" className="form-label">Nama Siswa</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="edit-name"
                       name="name"
                       value={editStudentForm.name}
-                      onChange={(e) => setEditStudentForm(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={handleStudentInputChange}
                       required
-                      disabled={loading}
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="edit-student-nisn" className="form-label">NISN</label>
+                    <label htmlFor="edit-nisn" className="form-label">NISN</label>
                     <input
                       type="text"
                       className="form-control"
-                      id="edit-student-nisn"
+                      id="edit-nisn"
                       name="nisn"
                       value={editStudentForm.nisn}
-                      onChange={(e) => setEditStudentForm(prev => ({ ...prev, nisn: e.target.value }))}
+                      onChange={handleStudentInputChange}
                       required
-                      disabled={loading}
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="edit-student-birth-date" className="form-label">Tanggal Lahir</label>
+                    <label htmlFor="edit-birth-date" className="form-label">Tanggal Lahir</label>
                     <input
                       type="date"
                       className="form-control"
-                      id="edit-student-birth-date"
+                      id="edit-birth-date"
                       name="birth_date"
                       value={editStudentForm.birth_date}
-                      onChange={(e) => setEditStudentForm(prev => ({ ...prev, birth_date: e.target.value }))}
+                      onChange={handleStudentInputChange}
                       required
-                      disabled={loading}
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="edit-student-parent-id" className="form-label">ID Orang Tua</label>
+                    <label htmlFor="edit-parent-id" className="form-label">ID Orang Tua</label>
                     <input
                       type="text"
                       className="form-control"
-                      id="edit-student-parent-id"
+                      id="edit-parent-id"
                       name="parent_id"
                       value={editStudentForm.parent_id}
-                      onChange={(e) => setEditStudentForm(prev => ({ ...prev, parent_id: e.target.value }))}
+                      onChange={handleStudentInputChange}
                       required
-                      disabled={loading}
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-100"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Menyimpan...
-                      </>
-                    ) : (
-                      'Simpan Perubahan'
-                    )}
-                  </button>
+                  <div className="text-end">
+                    <button type="button" className="btn btn-secondary me-2" onClick={() => setShowEditStudentModal(false)}>
+                      Batal
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                      {loading ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>

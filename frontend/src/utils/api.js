@@ -1,5 +1,21 @@
 const API_BASE_URL = 'https://darustrack-backend-production.up.railway.app';
 
+// Store for any pending requests during token refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Helper function to get auth token
 const getAuthToken = () => {
   return localStorage.getItem('token');
@@ -18,10 +34,116 @@ const getHeaders = () => {
   return headers;
 };
 
+// Common fetch options
+const getCommonOptions = () => ({
+  credentials: 'include',
+  mode: 'cors',
+  headers: {
+    'Access-Control-Allow-Credentials': 'true'
+  }
+});
+
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   if (!response.ok) {
     console.error('API Error Response Status:', response.status, response.statusText);
+
+    // Handle 401 Unauthorized errors (expired token)
+    if (response.status === 401) {
+      const originalRequest = response.url;
+
+      // If we're already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            // Retry the request with new token
+            return fetch(originalRequest, {
+              ...getCommonOptions(),
+              headers: getHeaders()
+            }).then(handleResponse);
+          })
+          .catch(err => {
+            throw err;
+          });
+      }
+
+      isRefreshing = true;
+
+      // Try to refresh the token
+      try {
+        // Check if we're not already on the refresh-token endpoint to avoid loops
+        if (!originalRequest.includes('/auth/refresh-token')) {
+          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+            method: 'POST',
+            ...getCommonOptions(),
+            headers: getHeaders()
+          }).then(res => {
+            if (!res.ok) {
+              throw new Error('Failed to refresh token');
+            }
+            return res.json();
+          });
+
+          if (refreshResponse && refreshResponse.accessToken) {
+            localStorage.setItem('token', refreshResponse.accessToken);
+            isRefreshing = false;
+            processQueue(null, refreshResponse.accessToken);
+
+            // Retry the original request that failed
+            return fetch(originalRequest, {
+              ...getCommonOptions(),
+              headers: getHeaders()
+            }).then(handleResponse);
+          }
+        } else {
+          // If we're already trying to refresh the token and got 401, token is invalid
+          // Use window.toast to avoid circular dependency
+          if (window?.Toastify) {
+            window.Toastify({
+              text: 'Your session has expired. Please log in again.',
+              duration: 3000,
+              close: true,
+              gravity: 'top',
+              position: 'right',
+              backgroundColor: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+              stopOnFocus: true
+            }).showToast();
+          }
+
+          // Clear local storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        }
+      } catch (error) {
+        // Display error notification via a custom event
+        const event = new CustomEvent('auth:error', {
+          detail: { message: 'Authentication failed. Please log in again.' }
+        });
+        window.dispatchEvent(event);
+
+        isRefreshing = false;
+        processQueue(error, null);
+
+        // Clear local storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+
+        throw error;
+      }
+    }
+
     let errorBody = 'Could not read error body';
     try {
       errorBody = await response.text();
@@ -42,15 +164,6 @@ const handleResponse = async (response) => {
     throw new Error('Received invalid response format from server');
   }
 };
-
-// Common fetch options
-const getCommonOptions = () => ({
-  credentials: 'include',
-  mode: 'cors',
-  headers: {
-    'Access-Control-Allow-Credentials': 'true'
-  }
-});
 
 // Auth API
 export const authAPI = {

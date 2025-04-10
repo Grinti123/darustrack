@@ -2,13 +2,63 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 function Navbar({ toggleSidebar }) {
   const { currentUser, logout, refreshToken } = useAuth();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState({
+    expiresIn: null,
+    isExpired: false,
+    isNearExpiry: false
+  });
+
+  // Check token expiration status
+  useEffect(() => {
+    const checkTokenStatus = () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setTokenStatus({
+          expiresIn: null,
+          isExpired: true,
+          isNearExpiry: false
+        });
+        return;
+      }
+
+      try {
+        // Decode token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const expiration = tokenPayload.exp * 1000; // Convert to milliseconds
+        const now = Date.now();
+        const timeLeft = expiration - now;
+
+        // Calculate time left in minutes
+        const minutesLeft = Math.round(timeLeft / (60 * 1000));
+
+        setTokenStatus({
+          expiresIn: minutesLeft,
+          isExpired: timeLeft <= 0,
+          isNearExpiry: timeLeft > 0 && timeLeft < 5 * 60 * 1000 // 5 minutes
+        });
+      } catch (error) {
+        console.error('Error checking token expiration:', error);
+        setTokenStatus({
+          expiresIn: null,
+          isExpired: false,
+          isNearExpiry: false
+        });
+      }
+    };
+
+    // Check on mount and then every minute
+    checkTokenStatus();
+    const interval = setInterval(checkTokenStatus, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -17,17 +67,43 @@ function Navbar({ toggleSidebar }) {
 
   const handleRefreshToken = async () => {
     setIsRefreshing(true);
-    toast.loading('Refreshing token...');
+    const toastId = toast.loading('Refreshing token...');
     try {
       await refreshToken();
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.success('Token refreshed successfully!');
+
+      // Update token status after successful refresh
+      const token = localStorage.getItem('token');
+      if (token) {
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const expiration = tokenPayload.exp * 1000;
+        const now = Date.now();
+        const minutesLeft = Math.round((expiration - now) / (60 * 1000));
+
+        setTokenStatus({
+          expiresIn: minutesLeft,
+          isExpired: false,
+          isNearExpiry: false
+        });
+      }
     } catch (error) {
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.error(`Token refresh failed: ${error.message}`);
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // Get button style based on token status
+  const getTokenButtonStyle = () => {
+    if (tokenStatus.isExpired) {
+      return 'btn-danger';
+    }
+    if (tokenStatus.isNearExpiry) {
+      return 'btn-warning';
+    }
+    return 'btn-outline-secondary';
   };
 
   return (
@@ -44,13 +120,17 @@ function Navbar({ toggleSidebar }) {
         <span className="navbar-brand d-md-none">DarusTrack</span>
 
         <button
-          className="btn btn-sm btn-outline-secondary ms-2 d-none d-md-inline-flex align-items-center"
+          className={`btn btn-sm ${getTokenButtonStyle()} ms-2 d-none d-md-inline-flex align-items-center`}
           onClick={handleRefreshToken}
           disabled={isRefreshing}
-          title="Refresh Token"
+          title={tokenStatus.expiresIn !== null ? `Token expires in ${tokenStatus.expiresIn} minutes` : 'Refresh Token'}
         >
           <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'animate-spin' : ''}`}></i>
-          <span className="ms-1 d-none d-lg-inline">Refresh</span>
+          <span className="ms-1 d-none d-lg-inline">
+            {tokenStatus.isExpired ? 'Expired' :
+             tokenStatus.isNearExpiry ? 'Expires Soon' :
+             tokenStatus.expiresIn !== null ? `${tokenStatus.expiresIn}m` : 'Refresh'}
+          </span>
         </button>
 
         <div className="ms-auto d-flex align-items-center">
@@ -79,12 +159,15 @@ function Navbar({ toggleSidebar }) {
               <li><hr className="dropdown-divider d-md-none" /></li>
               <li className="d-md-none">
                 <button
-                  className="dropdown-item d-flex align-items-center"
+                  className={`dropdown-item d-flex align-items-center ${tokenStatus.isNearExpiry ? 'text-warning' : tokenStatus.isExpired ? 'text-danger' : ''}`}
                   onClick={handleRefreshToken}
                   disabled={isRefreshing}
                 >
                   <i className={`bi bi-arrow-clockwise me-2 ${isRefreshing ? 'animate-spin' : ''}`}></i>
-                  Refresh Token
+                  {tokenStatus.isExpired ? 'Token Expired' :
+                   tokenStatus.isNearExpiry ? 'Token Expires Soon' :
+                   'Refresh Token'}
+                  {tokenStatus.expiresIn !== null && !tokenStatus.isExpired ? ` (${tokenStatus.expiresIn}m)` : ''}
                 </button>
               </li>
               <li><Link className="dropdown-item" to="/profile">Profile</Link></li>

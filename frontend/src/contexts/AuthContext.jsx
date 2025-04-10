@@ -17,13 +17,14 @@ export function AuthProvider({ children }) {
     try {
       setError(null)
       const response = await authAPI.login({ email, password })
+      console.log('Login API Response:', response)
 
-      if (response && response.token) {
+      if (response && response.accessToken) {
         // Store token in localStorage
-        localStorage.setItem('token', response.token)
+        localStorage.setItem('token', response.accessToken)
 
         // Extract user info from token
-        const tokenPayload = JSON.parse(atob(response.token.split('.')[1]))
+        const tokenPayload = JSON.parse(atob(response.accessToken.split('.')[1]))
         const user = {
           id: tokenPayload.id,
           name: tokenPayload.name,

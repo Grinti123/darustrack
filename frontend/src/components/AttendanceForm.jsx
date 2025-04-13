@@ -90,21 +90,21 @@ const AttendanceForm = ({ onSuccess }) => {
   const handleSaveAttendance = async () => {
     try {
       setLoading(true);
-      // Format the data for bulk update
+
+      // Format the data to match API requirements:
+      // attendance as array of { student_id: string, status: enum }
       const updates = attendanceData.map(attendance => ({
         student_id: attendance.student_id,
-        status: attendance.status || 'Not Set'
+        status: attendance.status || 'hadir'
       }));
 
       console.log('Sending attendance updates:', updates);
 
-      // Send bulk update
+      // Send the updates to /teachers/attendances/{date}
       const response = await teachersAPI.updateAttendance(selectedDate, updates);
-      console.log('Update response:', response);
 
       if (response) {
         toast.success('Status kehadiran berhasil diperbarui');
-        // Refresh the attendance data
         await fetchAttendanceByDate(selectedDate);
       } else {
         toast.error('Gagal menyimpan status kehadiran');

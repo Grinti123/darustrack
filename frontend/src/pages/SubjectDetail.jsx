@@ -103,10 +103,6 @@ function SubjectDetail() {
               <p><strong>ID Mata Pelajaran:</strong> {subject.id}</p>
               <p><strong>Nama:</strong> {subject.name}</p>
             </div>
-            <div className="col-md-6">
-              <p><strong>Dibuat:</strong> {subject.createdAt ? new Date(subject.createdAt).toLocaleDateString('id-ID') : '-'}</p>
-              <p><strong>Diperbarui:</strong> {subject.updatedAt ? new Date(subject.updatedAt).toLocaleDateString('id-ID') : '-'}</p>
-            </div>
           </div>
           <div className="mt-4">
             <h5 className="card-title">Deskripsi</h5>

@@ -806,9 +806,9 @@ function ClassManagement() {
                         <td>{classItem.id}</td>
                         <td>{classItem.name}</td>
                         <td>{classItem.grade_level}</td>
-                        <td>{classItem.createdAt}</td>
-                        <td>{classItem.updatedAt}</td>
-                        {userRole === 'admin' && (
+                          <td>{classItem.createdAt}</td>
+                          <td>{classItem.updatedAt}</td>
+                          {userRole === 'admin' && (
                             <td>
                               <div className="btn-group">
                                 <button
@@ -903,9 +903,9 @@ function ClassManagement() {
                 <div className="mb-3">
                   <label htmlFor="teacher_id" className="form-label">Guru</label>
                   <div className="dropdown">
-                    <input
-                      type="text"
-                      className="form-control"
+                  <input
+                    type="text"
+                    className="form-control"
                       id="teacherSearchInput"
                       placeholder="Cari nama guru..."
                       aria-label="Cari guru"
@@ -1276,9 +1276,9 @@ function ClassManagement() {
                     <div className="col-md-6 mb-3">
                       <label htmlFor="parent_id" className="form-label">Orang Tua</label>
                       <div className="dropdown">
-                        <input
-                          type="text"
-                          className="form-control"
+                      <input
+                        type="text"
+                        className="form-control"
                           id="parentSearchInput"
                           placeholder="Cari nama orang tua..."
                           aria-label="Cari orang tua"
@@ -1395,9 +1395,9 @@ function ClassManagement() {
                   <div className="mb-3">
                     <label htmlFor="edit-parent-id" className="form-label">Orang Tua</label>
                     <div className="dropdown">
-                      <input
-                        type="text"
-                        className="form-control"
+                    <input
+                      type="text"
+                      className="form-control"
                         id="editParentSearchInput"
                         placeholder="Cari nama orang tua..."
                         aria-label="Cari orang tua"
@@ -1531,9 +1531,9 @@ function ClassManagement() {
                   <div className="mb-3">
                     <label htmlFor="schedule-subject" className="form-label">Mata Pelajaran</label>
                     <div className="dropdown">
-                      <input
-                        type="text"
-                        className="form-control"
+                    <input
+                      type="text"
+                      className="form-control"
                         id="subjectSearchInput"
                         placeholder="Cari mata pelajaran..."
                         aria-label="Cari mata pelajaran"
@@ -1718,9 +1718,9 @@ function ClassManagement() {
                   <div className="mb-3">
                     <label htmlFor="edit-schedule-subject" className="form-label">Mata Pelajaran</label>
                     <div className="dropdown">
-                      <input
-                        type="text"
-                        className="form-control"
+                    <input
+                      type="text"
+                      className="form-control"
                         id="editSubjectSearchInput"
                         placeholder="Cari mata pelajaran..."
                         aria-label="Cari mata pelajaran"

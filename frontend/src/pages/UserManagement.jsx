@@ -195,20 +195,20 @@ function UserManagement() {
       setLoading(true)
       setError(null)
 
-      // Validate NIP for wali_kelas role
-      if (editForm.role === 'wali_kelas' && !editForm.nip) {
-        setError('NIP is required for Wali Kelas')
-        return
-      }
-
-      // Include class_id in the update data even if empty
+      // Create update data object with only the fields that are allowed
       const updateData = {
-        ...editForm,
-        class_id: editForm.class_id // Always include class_id
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role
       }
 
-      // Ensure required fields are present
-      if (!updateData.name || !updateData.email || !updateData.role || !updateData.status) {
+      // Only include nip if role is wali_kelas and nip exists
+      if (editForm.role === 'wali_kelas' && editForm.nip) {
+        updateData.nip = editForm.nip
+      }
+
+      // Validate required fields
+      if (!updateData.name || !updateData.email || !updateData.role) {
         throw new Error('Please fill in all required fields')
       }
 
@@ -756,14 +756,6 @@ function UserManagement() {
                         </div>
                       </>
                     )}
-                    <div className="mb-3">
-                      <label className="fw-bold">Tanggal Dibuat</label>
-                      <p>{new Date(selectedUser.created_at).toLocaleDateString('id-ID')}</p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="fw-bold">Terakhir Diperbarui</label>
-                      <p>{new Date(selectedUser.updated_at).toLocaleDateString('id-ID')}</p>
-                    </div>
                   </>
                 )}
               </div>

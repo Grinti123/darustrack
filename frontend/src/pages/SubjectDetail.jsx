@@ -100,7 +100,7 @@ function SubjectDetail() {
         <div className="card-body">
           <div className="row">
             <div className="col-md-6">
-              <p><strong>Nama:</strong> {subject.name}</p>
+
             </div>
           </div>
           <div className="mt-4">

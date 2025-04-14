@@ -383,7 +383,6 @@ function UserManagement() {
                 <table className="table table-hover">
                   <thead>
                     <tr>
-                      <th width="5%">ID</th>
                       <th>Nama</th>
                       <th>Email</th>
                       <th>Peran</th>
@@ -393,7 +392,6 @@ function UserManagement() {
                   <tbody>
                     {Array.isArray(currentUsers) && currentUsers.map((user) => (
                       <tr key={user.id || Math.random()}>
-                        <td>{user.id}</td>
                         <td>{user.name}</td>
                         <td>{user.email}</td>
                         <td>

@@ -792,7 +792,6 @@ function ClassManagement() {
                 <table className="table table-hover">
                   <thead>
                     <tr>
-                        <th width="5%">ID</th>
                         <th>Nama</th>
                         <th>Tingkat</th>
                         <th>Tanggal Dibuat</th>
@@ -803,19 +802,18 @@ function ClassManagement() {
                   <tbody>
                       {Array.isArray(classes) && classes.map((classItem) => (
                       <tr key={classItem.id}>
-                        <td>{classItem.id}</td>
                         <td>{classItem.name}</td>
                         <td>{classItem.grade_level}</td>
-                          <td>{classItem.createdAt}</td>
-                          <td>{classItem.updatedAt}</td>
-                          {userRole === 'admin' && (
-                            <td>
-                              <div className="btn-group">
-                                <button
-                                  className="btn btn-sm btn-outline-primary me-1"
-                                  onClick={() => handleEditClick(classItem)}
-                                  disabled={loading}
-                                >
+                        <td>{classItem.createdAt}</td>
+                        <td>{classItem.updatedAt}</td>
+                        {userRole === 'admin' && (
+                          <td>
+                            <div className="btn-group">
+                              <button
+                                className="btn btn-sm btn-outline-primary me-1"
+                                onClick={() => handleEditClick(classItem)}
+                                disabled={loading}
+                              >
                             <i className="bi bi-pencil"></i>
                           </button>
                           <button
@@ -1196,7 +1194,6 @@ function ClassManagement() {
                   <table className="table table-hover">
                     <thead>
                       <tr>
-                        <th>ID</th>
                         <th>Nama</th>
                         <th>NISN</th>
                         <th>Tanggal Lahir</th>
@@ -1207,7 +1204,6 @@ function ClassManagement() {
                     <tbody>
                       {students.map((student) => (
                         <tr key={student.id}>
-                          <td>{student.id}</td>
                           <td>{student.name}</td>
                           <td>{student.nisn}</td>
                           <td>{new Date(student.birth_date).toLocaleDateString('id-ID')}</td>

@@ -15,6 +15,8 @@ const AttendanceForm = ({ onSuccess }) => {
   const fetchAttendanceByDate = async (date) => {
     try {
       setLoading(true);
+      console.log('Fetching attendance for date:', date);
+
       const response = await teachersAPI.getAttendance(date);
       console.log('Fetched attendance response:', response);
 
@@ -33,7 +35,12 @@ const AttendanceForm = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
-      toast.error('Data kehadiran belum ada');
+      // Check if this is a network error (CORS or other connection issues)
+      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+        toast.error('Gagal terhubung ke server. Periksa koneksi atau ada masalah CORS.');
+      } else {
+        toast.error('Data kehadiran belum ada');
+      }
       setAttendanceData([]);
       setDateSubmitted(false);
     } finally {

@@ -325,27 +325,55 @@ export const teachersAPI = {
   // Attendance endpoints
   getAttendance: (date) =>
     fetch(`${API_BASE_URL}/teachers/attendances/${date}`, {
-      ...getCommonOptions(),
-      headers: getHeaders()
-    }).then(handleResponse),
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'include',
+      headers: {
+        ...getHeaders(),
+        'Accept': 'application/json'
+      }
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error fetching attendance for date ${date}:`, error);
+      throw error;
+    }),
 
   saveAttendance: (date) =>
     fetch(`${API_BASE_URL}/teachers/attendances`, {
       method: 'POST',
-      ...getCommonOptions(),
-      headers: getHeaders(),
+      mode: 'cors',
+      credentials: 'include',
+      headers: {
+        ...getHeaders(),
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         date: date
       })
-    }).then(handleResponse),
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error saving attendance for date ${date}:`, error);
+      throw error;
+    }),
 
   updateAttendance: (date, attendances) =>
     fetch(`${API_BASE_URL}/teachers/attendances/${date}`, {
       method: 'PUT',
-      headers: getHeaders(),
-      ...getCommonOptions(),
+      mode: 'cors',
+      credentials: 'include',
+      headers: {
+        ...getHeaders(),
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ attendances })
-    }).then(handleResponse),
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error updating attendance for date ${date}:`, error);
+      throw error;
+    }),
 
   getAttendanceHistory: (studentId) =>
     fetch(`${API_BASE_URL}/teachers/attendances/history/${studentId}`, {

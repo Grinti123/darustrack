@@ -112,7 +112,8 @@ const AttendanceForm = ({ onSuccess }) => {
 
       if (response) {
         toast.success('Status kehadiran berhasil diperbarui');
-        await fetchAttendanceByDate(selectedDate);
+        // Don't fetch attendance data again to maintain button states
+        // await fetchAttendanceByDate(selectedDate);
       } else {
         toast.error('Gagal menyimpan status kehadiran');
       }

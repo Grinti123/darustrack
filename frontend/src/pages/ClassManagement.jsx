@@ -804,16 +804,16 @@ function ClassManagement() {
                       <tr key={classItem.id}>
                         <td>{classItem.name}</td>
                         <td>{classItem.grade_level}</td>
-                        <td>{classItem.createdAt}</td>
-                        <td>{classItem.updatedAt}</td>
-                        {userRole === 'admin' && (
-                          <td>
-                            <div className="btn-group">
-                              <button
-                                className="btn btn-sm btn-outline-primary me-1"
-                                onClick={() => handleEditClick(classItem)}
-                                disabled={loading}
-                              >
+                          <td>{classItem.createdAt}</td>
+                          <td>{classItem.updatedAt}</td>
+                          {userRole === 'admin' && (
+                            <td>
+                              <div className="btn-group">
+                                <button
+                                  className="btn btn-sm btn-outline-primary me-1"
+                                  onClick={() => handleEditClick(classItem)}
+                                  disabled={loading}
+                                >
                             <i className="bi bi-pencil"></i>
                           </button>
                           <button

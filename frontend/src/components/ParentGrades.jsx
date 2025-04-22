@@ -375,9 +375,6 @@ const ParentGrades = () => {
               <div className="card-body d-flex justify-content-between align-items-center p-3">
                 <div>
                   <h5 className="mb-0" style={{ color: '#0d6efd' }}>{category.name || 'Undefined Category'}</h5>
-                  <small className="text-muted">
-                    {(category.details?.length || 0)} penilaian
-                  </small>
                 </div>
                 <button
                   className="btn btn-light"

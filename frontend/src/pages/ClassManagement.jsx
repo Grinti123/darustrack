@@ -530,16 +530,27 @@ function ClassManagement() {
 
     try {
       setLoading(true)
+
+      // Prepare the data with all the optional fields according to the API spec
+      const scheduleData = {
+        subject_id: editScheduleForm.subject_id,
+        day: editScheduleForm.day,
+        start_time: editScheduleForm.start_time,
+        end_time: editScheduleForm.end_time
+      }
+
       const response = await classesAPI.updateSchedule(
         selectedClass.id,
         selectedSchedule.id,
-        editScheduleForm
+        scheduleData
       )
 
       if (response) {
-        setSchedules(prev => prev.map(schedule =>
-          schedule.id === selectedSchedule.id ? { ...schedule, ...response } : schedule
-        ))
+        // Reload the schedules data to get the latest updates
+        const updatedSchedules = await classesAPI.getSchedule(selectedClass.id);
+        setSchedules(Array.isArray(updatedSchedules) ? updatedSchedules : []);
+
+        // Close the modal
         setShowEditScheduleModal(false)
         setSelectedSchedule(null)
         setError(null)

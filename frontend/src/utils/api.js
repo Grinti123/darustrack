@@ -837,18 +837,26 @@ export const classesAPI = {
 
   // Update schedule in class
   updateSchedule: async (classId, scheduleId, scheduleData) => {
-    const response = await fetch(`${API_BASE_URL}/classes/${classId}/schedule/${scheduleId}`, {
+    // Ensure the request body follows the API specification
+    // subject_id, day, start_time, and end_time are all optional
+    const requestBody = {};
+    if (scheduleData.subject_id) requestBody.subject_id = scheduleData.subject_id;
+    if (scheduleData.day) requestBody.day = scheduleData.day;
+    if (scheduleData.start_time) requestBody.start_time = scheduleData.start_time;
+    if (scheduleData.end_time) requestBody.end_time = scheduleData.end_time;
+
+    const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
       method: 'PUT',
       headers: getHeaders(),
       credentials: 'include',
-      body: JSON.stringify(scheduleData)
+      body: JSON.stringify(requestBody)
     }).then(handleResponse)
     return response
   },
 
   // Delete schedule from class
   deleteSchedule: async (classId, scheduleId) => {
-    const response = await fetch(`${API_BASE_URL}/classes/${classId}/schedule/${scheduleId}`, {
+    const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
       method: 'DELETE',
       headers: getHeaders(),
       credentials: 'include'

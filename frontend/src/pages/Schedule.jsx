@@ -94,7 +94,7 @@ const Schedule = () => {
 
   return (
     <div className="container py-4">
-      <h2 className="mb-4">Jadwal Pelajaran {['teacher', 'wali_kelas'].includes(userRole) ? 'Guru' : 'Siswa'}</h2>
+      <h2 className="mb-4">Jadwal Kelas</h2>
 
       {/* Day tabs with different colors */}
       <div className="d-flex mb-4 overflow-auto">

@@ -462,7 +462,27 @@ function ClassManagement() {
     setNewSchedule(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleAddScheduleSubmit = async (e) => {
+  // Helper function to check if two time ranges overlap
+const checkTimeOverlap = (start1, end1, start2, end2) => {
+  return start1 < end2 && start2 < end1;
+};
+
+// Helper function to check if a schedule overlaps with existing schedules
+const checkScheduleOverlap = (newSchedule, existingSchedules) => {
+  return existingSchedules.some(schedule => {
+    if (schedule.day === newSchedule.day && schedule.subject_id === newSchedule.subject_id) {
+      const newStart = new Date(`2000-01-01T${newSchedule.start_time}`).getTime();
+      const newEnd = new Date(`2000-01-01T${newSchedule.end_time}`).getTime();
+      const existingStart = new Date(`2000-01-01T${schedule.start_time}`).getTime();
+      const existingEnd = new Date(`2000-01-01T${schedule.end_time}`).getTime();
+      
+      return checkTimeOverlap(newStart, newEnd, existingStart, existingEnd);
+    }
+    return false;
+  });
+};
+
+const handleAddScheduleSubmit = async (e) => {
     e.preventDefault()
 
     if (!selectedClass || userRole !== 'admin') {
@@ -473,6 +493,12 @@ function ClassManagement() {
     // Validate required fields
     if (!newSchedule.subject_id || !newSchedule.day || !newSchedule.start_time || !newSchedule.end_time) {
       setError('Semua field wajib diisi')
+      return
+    }
+
+    // Check for schedule overlap
+    if (checkScheduleOverlap(newSchedule, schedules)) {
+      setError('Jadwal bertabrakan dengan jadwal yang sudah ada')
       return
     }
 
@@ -527,6 +553,13 @@ function ClassManagement() {
   const handleEditScheduleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedClass || !selectedSchedule || userRole !== 'admin') return
+
+    // Check for schedule overlap, excluding the current schedule being edited
+    const otherSchedules = schedules.filter(schedule => schedule.id !== selectedSchedule.id);
+    if (checkScheduleOverlap(editScheduleForm, otherSchedules)) {
+      setError('Jadwal bertabrakan dengan jadwal yang sudah ada');
+      return;
+    }
 
     try {
       setLoading(true)
@@ -1534,6 +1567,12 @@ function ClassManagement() {
                 ></button>
               </div>
               <div className="modal-body">
+                {error && (
+                  <div className="alert alert-danger" role="alert">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    {error}
+                  </div>
+                )}
                 <form onSubmit={handleAddScheduleSubmit}>
                   <div className="mb-3">
                     <label htmlFor="schedule-subject" className="form-label">Mata Pelajaran</label>

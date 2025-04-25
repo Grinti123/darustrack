@@ -111,7 +111,22 @@ const StudentAssessment = () => {
         beginAtZero: true,
         max: 100,
       },
+      x: {
+        ticks: {
+          maxRotation: 0,
+          minRotation: 0,
+          font: {
+            size: 11
+          },
+          autoSkip: false
+        },
+        grid: {
+          offset: true
+        }
+      }
     },
+    maintainAspectRatio: false,
+    height: 400
   }
 
   // Chart options for student rankings
@@ -131,6 +146,12 @@ const StudentAssessment = () => {
         beginAtZero: true,
         max: 100,
       },
+      x: {
+        ticks: {
+          maxRotation: 0,
+          minRotation: 0
+        }
+      }
     },
   }
 
@@ -264,9 +285,9 @@ const StudentAssessment = () => {
                 </div>
 
                 {/* Charts Section */}
-                <div className="row mb-4">
+                <div className="mb-4">
                   {/* Subject Averages Chart */}
-                  <div className="col-md-6 mb-4">
+                  <div className="mb-4">
                     <div className="card">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Rata-rata Mata Pelajaran</h5>
@@ -278,7 +299,7 @@ const StudentAssessment = () => {
                   </div>
 
                   {/* Student Rankings Chart */}
-                  <div className="col-md-6 mb-4">
+                  <div className="mb-4">
                     <div className="card">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Peringkat Siswa</h5>

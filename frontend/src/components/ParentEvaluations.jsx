@@ -97,9 +97,6 @@ const ParentEvaluations = () => {
                   <div className="card-body d-flex flex-column">
                     <h5 className="card-title">{evaluation.title}</h5>
                     <p className="card-text text-muted mb-3">
-                      <small>
-                        Terakhir diperbarui: {new Date(evaluation.updatedAt).toLocaleDateString('id-ID')}
-                      </small>
                     </p>
                     <div className="mt-auto text-end">
                       <button

@@ -297,7 +297,6 @@ const ParentGrades = () => {
                       <th scope="col">Hari</th>
                       <th scope="col">Tanggal</th>
                       <th scope="col" className="text-center" style={{ width: '120px' }}>Nilai</th>
-                      <th scope="col" style={{ width: '150px' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -325,7 +324,6 @@ const ParentGrades = () => {
                               <span className="text-muted">-</span>
                             )}
                           </td>
-                          <td className={color}>{status}</td>
                         </tr>
                       );
                     })}

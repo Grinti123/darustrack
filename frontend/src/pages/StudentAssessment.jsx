@@ -149,10 +149,19 @@ const StudentAssessment = () => {
       x: {
         ticks: {
           maxRotation: 0,
-          minRotation: 0
+          minRotation: 0,
+          font: {
+            size: 11
+          },
+          autoSkip: false
+        },
+        grid: {
+          offset: true
         }
       }
     },
+    maintainAspectRatio: false,
+    height: 400
   }
 
   // Prepare chart data when classDetail changes
@@ -291,9 +300,11 @@ const StudentAssessment = () => {
                     <div className="card">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Rata-rata Mata Pelajaran</h5>
-                        {getSubjectChartData() && (
-                          <Bar options={subjectChartOptions} data={getSubjectChartData()} />
-                        )}
+                        <div style={{ height: '400px', width: '100%' }}>
+                          {getSubjectChartData() && (
+                            <Bar options={subjectChartOptions} data={getSubjectChartData()} />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -303,9 +314,11 @@ const StudentAssessment = () => {
                     <div className="card">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Peringkat Siswa</h5>
-                        {getStudentChartData() && (
-                          <Bar options={studentChartOptions} data={getStudentChartData()} />
-                        )}
+                        <div style={{ height: '400px', width: '100%' }}>
+                          {getStudentChartData() && (
+                            <Bar options={studentChartOptions} data={getStudentChartData()} />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

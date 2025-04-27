@@ -113,8 +113,8 @@ const StudentAssessment = () => {
       },
       x: {
         ticks: {
-          maxRotation: 0,
-          minRotation: 0,
+          maxRotation: 90,
+          minRotation: 90,
           font: {
             size: 11
           },
@@ -148,8 +148,8 @@ const StudentAssessment = () => {
       },
       x: {
         ticks: {
-          maxRotation: 0,
-          minRotation: 0,
+          maxRotation: 90,
+          minRotation: 90,
           font: {
             size: 11
           },
@@ -294,13 +294,13 @@ const StudentAssessment = () => {
                 </div>
 
                 {/* Charts Section */}
-                <div className="mb-4">
+                <div className="row mb-4">
                   {/* Subject Averages Chart */}
-                  <div className="mb-4">
-                    <div className="card">
+                  <div className="col-md-6 mb-4">
+                    <div className="card h-100">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Rata-rata Mata Pelajaran</h5>
-                        <div style={{ height: '400px', width: '100%' }}>
+                        <div style={{ height: '600px', width: '100%' }}>
                           {getSubjectChartData() && (
                             <Bar options={subjectChartOptions} data={getSubjectChartData()} />
                           )}
@@ -310,11 +310,11 @@ const StudentAssessment = () => {
                   </div>
 
                   {/* Student Rankings Chart */}
-                  <div className="mb-4">
-                    <div className="card">
+                  <div className="col-md-6 mb-4">
+                    <div className="card h-100">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Grafik Peringkat Siswa</h5>
-                        <div style={{ height: '400px', width: '100%' }}>
+                        <div style={{ height: '500px', width: '100%' }}>
                           {getStudentChartData() && (
                             <Bar options={studentChartOptions} data={getStudentChartData()} />
                           )}

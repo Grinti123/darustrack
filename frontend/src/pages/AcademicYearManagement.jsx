@@ -23,18 +23,28 @@ function AcademicYearManagement() {
   // Add state for classes
   const [showClassesModal, setShowClassesModal] = useState(false)
   const [showAddClassModal, setShowAddClassModal] = useState(false)
+  const [showEditClassModal, setShowEditClassModal] = useState(false)
+  const [showDeleteClassModal, setShowDeleteClassModal] = useState(false)
   const [classes, setClasses] = useState([])
   const [classesLoading, setClassesLoading] = useState(false)
   const [newClass, setNewClass] = useState({
     name: '',
     teacher_id: ''
   })
+  const [editClassData, setEditClassData] = useState({
+    id: null,
+    name: '',
+    teacher_id: ''
+  })
+  const [selectedClassForDelete, setSelectedClassForDelete] = useState(null)
   // Add state for students
   const [showStudentsModal, setShowStudentsModal] = useState(false)
   const [showAddStudentModal, setShowAddStudentModal] = useState(false)
+  const [showDeleteStudentModal, setShowDeleteStudentModal] = useState(false)
   const [selectedClass, setSelectedClass] = useState(null)
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(false)
+  const [selectedStudentForDelete, setSelectedStudentForDelete] = useState(null)
   
   // Add state for all available students for dropdown
   const [availableStudents, setAvailableStudents] = useState([])
@@ -341,6 +351,89 @@ function AcademicYearManagement() {
     }
   }
 
+  // Handler for editing a class
+  const handleEditClassClick = (classItem) => {
+    setEditClassData({
+      id: classItem.id,
+      name: classItem.name,
+      teacher_id: classItem.teacher_id || ''
+    })
+    setShowEditClassModal(true)
+    fetchTeachers() // Fetch teachers for dropdown
+  }
+
+  // Handler for edit class form input changes
+  const handleEditClassInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditClassData({
+      ...editClassData,
+      [name]: value
+    })
+  }
+
+  // Handler for submitting class edit
+  const handleEditClassSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      setClassesLoading(true)
+      console.log(`AcademicYearManagement: Updating class with id: ${editClassData.id}, data:`, editClassData);
+      
+      // Make a copy of edit data without the ID for the API payload
+      const { id, ...updateData } = editClassData;
+      const result = await academicYearsAPI.updateClass(id, updateData)
+      console.log(`AcademicYearManagement: Class updated successfully, result:`, result);
+      
+      // Refresh the classes
+      console.log(`AcademicYearManagement: Refreshing classes after update`);
+      const academicYearData = await academicYearsAPI.getClasses(selectedAcademicYear.id)
+      
+      // Extract classes array from response
+      const classesData = academicYearData.classes || [];
+      setClasses(Array.isArray(classesData) ? classesData : [])
+      
+      setShowEditClassModal(false)
+      toast.success('Kelas berhasil diperbarui')
+    } catch (err) {
+      console.error('AcademicYearManagement: Error updating class:', err);
+      toast.error('Gagal memperbarui kelas')
+    } finally {
+      setClassesLoading(false)
+    }
+  }
+
+  // Handler for deleting a class
+  const handleDeleteClassClick = (classItem) => {
+    setSelectedClassForDelete(classItem)
+    setShowDeleteClassModal(true)
+  }
+
+  // Handler for confirming class deletion
+  const handleDeleteClassConfirm = async () => {
+    try {
+      setClassesLoading(true)
+      console.log(`AcademicYearManagement: Deleting class with id: ${selectedClassForDelete.id}`);
+      
+      await academicYearsAPI.deleteClass(selectedClassForDelete.id)
+      console.log(`AcademicYearManagement: Class deleted successfully`);
+      
+      // Refresh the classes
+      console.log(`AcademicYearManagement: Refreshing classes after deletion`);
+      const academicYearData = await academicYearsAPI.getClasses(selectedAcademicYear.id)
+      
+      // Extract classes array from response
+      const classesData = academicYearData.classes || [];
+      setClasses(Array.isArray(classesData) ? classesData : [])
+      
+      setShowDeleteClassModal(false)
+      toast.success('Kelas berhasil dihapus')
+    } catch (err) {
+      console.error('AcademicYearManagement: Error deleting class:', err);
+      toast.error('Gagal menghapus kelas')
+    } finally {
+      setClassesLoading(false)
+    }
+  }
+
   // Fetch all available students for dropdown
   const fetchAvailableStudents = async () => {
     setLoadingAvailableStudents(true)
@@ -423,6 +516,48 @@ function AcademicYearManagement() {
     } finally {
       setStudentsLoading(false)
       console.log('AcademicYearManagement: Student add operation completed');
+    }
+  }
+
+  // Handler for deleting a student from class
+  const handleDeleteStudentClick = (student) => {
+    setSelectedStudentForDelete(student)
+    setShowDeleteStudentModal(true)
+  }
+
+  // Handler for confirming student deletion
+  const handleDeleteStudentConfirm = async () => {
+    try {
+      setStudentsLoading(true)
+      console.log(`AcademicYearManagement: Deleting student ${selectedStudentForDelete.id} from class ${selectedClass.id} in academic year ${selectedAcademicYear.id}`);
+      
+      await academicYearsAPI.removeStudentFromClass(
+        selectedAcademicYear.id,
+        selectedClass.id,
+        selectedStudentForDelete.id
+      )
+      
+      console.log(`AcademicYearManagement: Student deleted successfully`);
+      
+      // Refresh the students list
+      console.log(`AcademicYearManagement: Refreshing students list after deletion`);
+      const data = await academicYearsAPI.getStudentsInClass(
+        selectedAcademicYear.id, 
+        selectedClass.id
+      )
+      
+      // Extract students array from response
+      const studentsData = data.students || [];
+      setStudents(Array.isArray(studentsData) ? studentsData : [])
+      
+      setShowDeleteStudentModal(false)
+      toast.success('Siswa berhasil dihapus dari kelas')
+    } catch (err) {
+      console.error('AcademicYearManagement: Error deleting student:', err);
+      console.error('AcademicYearManagement: Error details:', err.message);
+      toast.error('Gagal menghapus siswa dari kelas')
+    } finally {
+      setStudentsLoading(false)
     }
   }
 
@@ -1001,10 +1136,24 @@ function AcademicYearManagement() {
                             <td>
                               <button
                                 onClick={() => handleViewStudents(classItem)}
-                                className="btn btn-sm btn-outline-info"
+                                className="btn btn-sm btn-outline-info me-1"
                                 title="Lihat Siswa"
                               >
                                 <i className="bi bi-people"></i>
+                              </button>
+                              <button
+                                onClick={() => handleEditClassClick(classItem)}
+                                className="btn btn-sm btn-outline-primary me-1"
+                                title="Edit Kelas"
+                              >
+                                <i className="bi bi-pencil"></i>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClassClick(classItem)}
+                                className="btn btn-sm btn-outline-danger"
+                                title="Hapus Kelas"
+                              >
+                                <i className="bi bi-trash"></i>
                               </button>
                             </td>
                           </tr>
@@ -1162,6 +1311,7 @@ function AcademicYearManagement() {
                           <th>Nama</th>
                           <th>Tanggal Lahir</th>
                           <th>ID Orang Tua</th>
+                          <th>Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1171,6 +1321,15 @@ function AcademicYearManagement() {
                             <td>{student.name}</td>
                             <td>{student.birth_date ? new Date(student.birth_date).toLocaleDateString('id-ID') : '-'}</td>
                             <td>{student.parent_id || '-'}</td>
+                            <td>
+                              <button
+                                onClick={() => handleDeleteStudentClick(student)}
+                                className="btn btn-sm btn-outline-danger"
+                                title="Hapus Siswa dari Kelas"
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1289,6 +1448,197 @@ function AcademicYearManagement() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Class Modal */}
+      {showEditClassModal && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  Edit Kelas
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowEditClassModal(false)}
+                ></button>
+              </div>
+              <form onSubmit={handleEditClassSubmit}>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="name" className="form-label">Nama Kelas</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="name"
+                      name="name"
+                      value={editClassData.name}
+                      onChange={handleEditClassInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="teacher_id" className="form-label">Guru</label>
+                    <select
+                      className="form-select"
+                      id="teacher_id"
+                      name="teacher_id"
+                      value={editClassData.teacher_id}
+                      onChange={handleEditClassInputChange}
+                      required
+                      disabled={loadingTeachers}
+                    >
+                      <option value="">Pilih Guru</option>
+                      {loadingTeachers ? (
+                        <option value="" disabled>Memuat data guru...</option>
+                      ) : (
+                        teachers.map(teacher => (
+                          <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+                        ))
+                      )}
+                    </select>
+                    {loadingTeachers && (
+                      <div className="form-text text-muted">
+                        <small><i className="bi bi-hourglass-split me-1"></i>Memuat data guru...</small>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowEditClassModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={classesLoading}
+                  >
+                    {classesLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Class Modal */}
+      {showDeleteClassModal && selectedClassForDelete && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" className="btn-close" onClick={() => setShowDeleteClassModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p>Anda yakin ingin menghapus kelas ini?</p>
+                <div className="alert alert-warning">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Data yang dihapus tidak dapat dikembalikan.
+                </div>
+                <div className="mt-3">
+                  <p className="mb-1"><strong>ID:</strong> {selectedClassForDelete.id}</p>
+                  <p className="mb-1"><strong>Nama Kelas:</strong> {selectedClassForDelete.name}</p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteClassModal(false)}
+                  disabled={classesLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteClassConfirm}
+                  disabled={classesLoading}
+                >
+                  {classesLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash me-2"></i>
+                      Hapus
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Student Modal */}
+      {showDeleteStudentModal && selectedStudentForDelete && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" className="btn-close" onClick={() => setShowDeleteStudentModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p>Anda yakin ingin menghapus siswa ini dari kelas ini?</p>
+                <div className="alert alert-warning">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Data yang dihapus tidak dapat dikembalikan.
+                </div>
+                <div className="mt-3">
+                  <p className="mb-1"><strong>ID Siswa:</strong> {selectedStudentForDelete.id}</p>
+                  <p className="mb-1"><strong>Nama Siswa:</strong> {selectedStudentForDelete.name}</p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteStudentModal(false)}
+                  disabled={studentsLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteStudentConfirm}
+                  disabled={studentsLoading}
+                >
+                  {studentsLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash me-2"></i>
+                      Hapus
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -1781,6 +1781,61 @@ export const academicYearsAPI = {
     }
   },
   
+  // Update a class in an academic year
+  updateClass: async (classId, classData) => {
+    console.log(`[API] academicYearsAPI.updateClass: Updating class with id: ${classId}, data:`, classData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/classes/${classId}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(classData)
+      });
+      
+      console.log(`[API] academicYearsAPI.updateClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.updateClass: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] academicYearsAPI.updateClass: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.updateClass: Updated class successfully, response data:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.updateClass: Exception for class id ${classId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Delete a class from an academic year
+  deleteClass: async (classId) => {
+    console.log(`[API] academicYearsAPI.deleteClass: Deleting class with id: ${classId}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/classes/${classId}`, {
+        method: 'DELETE',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.deleteClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.deleteClass: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] academicYearsAPI.deleteClass: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.deleteClass: Deleted class successfully`);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.deleteClass: Exception for class id ${classId}:`, error);
+      throw error;
+    }
+  },
+  
   // Get students in a class for a specific academic year
   getStudentsInClass: async (academicYearId, classId) => {
     console.log(`[API] academicYearsAPI.getStudentsInClass: Fetching students for class ${classId} in academic year ${academicYearId}`);
@@ -1878,6 +1933,8 @@ export const academicYearsAPI = {
       
       if (!response.ok) {
         console.error(`[API] academicYearsAPI.removeStudentFromClass: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] academicYearsAPI.removeStudentFromClass: Error details:`, errorText);
       }
       
       const data = await handleResponse(response);

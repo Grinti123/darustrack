@@ -263,9 +263,12 @@ const handleAddScheduleSubmit = async (e) => {
                 className="form-select"
                   >
                     <option value="">Semua Tingkat</option>
-                <option value="7">Kelas 7</option>
-                <option value="8">Kelas 8</option>
-                <option value="9">Kelas 9</option>
+                <option value="7">Kelas 1</option>
+                <option value="8">Kelas 2</option>
+                <option value="9">Kelas 3</option>
+                <option value="9">Kelas 4</option>
+                <option value="9">Kelas 5</option>
+                <option value="9">Kelas 6</option>
                   </select>
                 </div>
               </div>

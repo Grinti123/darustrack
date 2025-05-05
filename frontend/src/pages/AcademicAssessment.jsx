@@ -452,9 +452,7 @@ const AcademicAssessment = () => {
                         <span className="badge bg-success ms-2">Aktif</span>
                       )}
                     </h5>
-                    <p className="card-text text-muted mb-3">
-                      {semester.description || 'Semester ' + semester.number}
-                    </p>
+                   
                     <div className="mt-auto text-end">
                       <button
                         className="btn btn-primary"
@@ -492,7 +490,11 @@ const AcademicAssessment = () => {
           >
             ← Pilih Semester
           </button>
-          <h2 className="mb-0">Penilaian Akademik - {selectedSemester?.name}</h2>
+          <h2 className="mb-0">
+            Penilaian Akademik
+            {selectedSemester?.name && ` - ${selectedSemester.name}`}
+            {!selectedSemester?.name && selectedSemester?.number && ` - Semester ${selectedSemester.number}`}
+          </h2>
         </div>
 
         {loading ? (

@@ -158,9 +158,7 @@ const ParentEvaluationTitles = () => {
                         <span className="badge bg-success ms-2">Aktif</span>
                       )}
                     </h5>
-                    <p className="card-text text-muted mb-3">
-                      {semester.description || 'Semester ' + semester.number}
-                    </p>
+                   
                     <div className="mt-auto text-end">
                       <button
                         className="btn btn-primary"

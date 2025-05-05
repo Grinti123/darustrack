@@ -33,6 +33,23 @@ function SemesterInfo() {
     )
   }
 
+  // Get semester display name, ensuring we don't show "undefined"
+  const getSemesterName = () => {
+    if (activeSemester.name) {
+      return activeSemester.name;
+    }
+    if (activeSemester.semester) {
+      return `Semester ${activeSemester.semester}`;
+    }
+    if (activeSemester.number) {
+      return `Semester ${activeSemester.number}`;
+    }
+    return ""; // Return empty string instead of undefined
+  }
+
+  const semesterName = getSemesterName();
+  
+  // If no valid name is available, only show the badge without the name
   return (
     <div className="d-flex align-items-center">
       <div className="semester-badge d-flex align-items-center">
@@ -40,10 +57,11 @@ function SemesterInfo() {
           <i className="bi bi-calendar-event me-1"></i>
           Semester Aktif
         </span>
-        <div className="fw-medium">
-          {activeSemester.name || `Semester ${activeSemester.semester}`} 
-          
-        </div>
+        {semesterName && (
+          <div className="fw-medium">
+            {semesterName}
+          </div>
+        )}
       </div>
     </div>
   )

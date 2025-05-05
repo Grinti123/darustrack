@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, parseISO, getMonth } from 'date-fns';
+import { format, parseISO, getMonth, isAfter, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'react-toastify';
 import { teachersAPI } from '../utils/api';
@@ -28,6 +28,9 @@ const WaliKelasAttendances = () => {
   const [pendingChanges, setPendingChanges] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
   const [noDataForDate, setNoDataForDate] = useState(false);
+  
+  // Get today's date for validation
+  const today = format(new Date(), 'yyyy-MM-dd');
   
   // Check if current user is admin
   const isAdmin = userRole === 'admin';
@@ -61,12 +64,35 @@ const WaliKelasAttendances = () => {
     fetchAllAttendances(selectedDate);
   }, [selectedDate]);
   
+  // Validate date to ensure it's not in the future
+  const validateDate = (date) => {
+    // Check if the date is after today
+    const dateObj = new Date(date);
+    const todayObj = new Date();
+    todayObj.setHours(23, 59, 59, 999); // Set to end of day to allow current day entries
+    
+    console.log('Date validation:', {
+      dateToValidate: date,
+      dateObj: dateObj.toISOString(),
+      todayObj: todayObj.toISOString(),
+      isAfter: dateObj > todayObj
+    });
+    
+    return dateObj <= todayObj;
+  };
+  
   const fetchAllAttendances = async (date) => {
     try {
       setLoading(true);
       setNoDataForDate(false);
-      const data = await teachersAPI.getAllAttendances(date);
-      console.log(`All attendances data for date ${date}:`, data);
+      
+      // Format the date to ensure consistency (yyyy-MM-dd)
+      const formattedDate = format(new Date(date), 'yyyy-MM-dd');
+      
+      console.log(`Fetching attendances for date: ${formattedDate} (original: ${date})`);
+      
+      const data = await teachersAPI.getAllAttendances(formattedDate);
+      console.log(`All attendances data for date ${formattedDate}:`, data);
       
       // Ensure we're handling the response data correctly with student_class_id
       if (Array.isArray(data)) {
@@ -108,13 +134,24 @@ const WaliKelasAttendances = () => {
   
   const handleAddAttendance = async () => {
     try {
+      // Validate the date is not in the future
+      if (!validateDate(addDate)) {
+        toast.error("Tanggal kehadiran tidak boleh melebihi tanggal hari ini");
+        return;
+      }
+      
       setIsCreating(true);
       
+      // Format the date to ensure consistency (yyyy-MM-dd)
+      const formattedDate = format(new Date(addDate), 'yyyy-MM-dd');
+      
+      console.log(`Adding attendance for date: ${formattedDate} (original: ${addDate})`);
+      
       // Call the API to create new attendance records for this date
-      const response = await teachersAPI.saveAttendance(addDate);
+      const response = await teachersAPI.saveAttendance(formattedDate);
       
       // Show success message
-      toast.success(`Berhasil menambahkan data kehadiran untuk tanggal ${addDate}`);
+      toast.success(`Berhasil menambahkan data kehadiran untuk tanggal ${formattedDate}`);
       
       // Refresh the data if we're viewing the same date
       if (addDate === selectedDate) {
@@ -125,7 +162,7 @@ const WaliKelasAttendances = () => {
       setIsAddModalOpen(false);
     } catch (err) {
       console.error(`Error adding attendance for date ${addDate}:`, err);
-      toast.error('Gagal menambahkan data kehadiran');
+      toast.error(err.message || 'Gagal menambahkan data kehadiran');
     } finally {
       setIsCreating(false);
     }
@@ -157,6 +194,15 @@ const WaliKelasAttendances = () => {
     }
     
     try {
+      console.log('Selected date for attendance update:', selectedDate);
+      
+      // Validate the date is not in the future
+      if (!validateDate(selectedDate)) {
+        console.error('Date validation failed. Cannot use future dates.');
+        toast.error("Tanggal kehadiran tidak boleh melebihi tanggal hari ini");
+        return;
+      }
+      
       setLoading(true);
       
       // Format the updates for the API
@@ -165,10 +211,20 @@ const WaliKelasAttendances = () => {
         status
       }));
       
-      console.log('Saving multiple attendance updates:', attendanceUpdates);
+      // Format the date to ensure consistency (yyyy-MM-dd)
+      const formattedDate = format(new Date(selectedDate), 'yyyy-MM-dd');
+      
+      console.log('Saving multiple attendance updates:', {
+        originalDate: selectedDate,
+        formattedDate: formattedDate,
+        updates: attendanceUpdates,
+        requestStructure: {
+          attendanceUpdates: attendanceUpdates
+        }
+      });
       
       // Call the API to update the attendance using query parameter format
-      await teachersAPI.updateAttendance(selectedDate, attendanceUpdates);
+      await teachersAPI.updateAttendance(formattedDate, attendanceUpdates);
       
       // Show success message
       toast.success('Status kehadiran siswa berhasil diperbarui');
@@ -191,8 +247,10 @@ const WaliKelasAttendances = () => {
       console.error('Error saving attendance changes:', err);
       if (err.message && err.message.includes('student_class_id tidak terdaftar')) {
         toast.error('Beberapa siswa tidak terdaftar di kelas ini pada tanggal tersebut');
+      } else if (err.message && err.message.includes('Tanggal kehadiran tidak boleh melebihi tanggal hari ini')) {
+        toast.error('Tanggal kehadiran tidak boleh melebihi tanggal hari ini');
       } else {
-        toast.error('Gagal menyimpan status kehadiran');
+        toast.error(err.message || 'Gagal menyimpan status kehadiran');
       }
     } finally {
       setLoading(false);
@@ -206,6 +264,30 @@ const WaliKelasAttendances = () => {
   
   const handleMonthChange = (e) => {
     setSelectedMonth(e.target.value);
+  };
+  
+  const handleDateChange = (e) => {
+    const newDate = e.target.value;
+    
+    // Check if the date is in the future
+    if (!validateDate(newDate)) {
+      toast.warning("Tidak bisa memilih tanggal masa depan");
+      return;
+    }
+    
+    setSelectedDate(newDate);
+  };
+  
+  const handleAddDateChange = (e) => {
+    const newDate = e.target.value;
+    
+    // Check if the date is in the future
+    if (!validateDate(newDate)) {
+      toast.warning("Tidak bisa memilih tanggal masa depan");
+      return;
+    }
+    
+    setAddDate(newDate);
   };
   
   const filteredAttendances = attendances.filter(attendance => {
@@ -243,7 +325,9 @@ const WaliKelasAttendances = () => {
             <div className="me-3">
               <span className="badge bg-primary-subtle text-primary rounded-pill me-2">
                 <i className="bi bi-calendar-event me-1"></i>
-                Semester Aktif: {activeSemester.name || `Semester ${activeSemester.semester}`}
+                Semester Aktif
+                {activeSemester.name && `: ${activeSemester.name}`}
+                {!activeSemester.name && activeSemester.semester && `: Semester ${activeSemester.semester}`}
               </span>
             </div>
           )}
@@ -268,7 +352,8 @@ const WaliKelasAttendances = () => {
                 id="selectedDate"
                 name="selectedDate"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={handleDateChange}
+                max={today}
               />
             </div>
             <div className="col-md-4">
@@ -498,9 +583,13 @@ const WaliKelasAttendances = () => {
                     className="form-control"
                     id="addDate"
                     value={addDate}
-                    onChange={(e) => setAddDate(e.target.value)}
+                    onChange={handleAddDateChange}
+                    max={today}
                     disabled={isCreating}
                   />
+                  <small className="text-muted">
+                    Tanggal tidak boleh melebihi tanggal hari ini.
+                  </small>
                 </div>
                 <p className="text-muted">
                   Sistem akan membuat daftar kehadiran untuk seluruh siswa di kelas Anda pada tanggal yang dipilih.

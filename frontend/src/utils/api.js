@@ -367,8 +367,9 @@ export const teachersAPI = {
       throw error;
     }),
     
-  getAllAttendances: (date) =>
-    fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
+  getAllAttendances: (date) => {
+    console.log(`[API] getAllAttendances: Fetching for date ${date}`);
+    return fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
       method: 'GET',
       mode: 'cors',
       credentials: 'include',
@@ -377,11 +378,15 @@ export const teachersAPI = {
         'Accept': 'application/json'
       }
     })
-    .then(handleResponse)
+    .then(response => {
+      console.log(`[API] getAllAttendances: Response status: ${response.status}`);
+      return handleResponse(response);
+    })
     .catch(error => {
       console.error(`[API] Error fetching all attendances for date ${date}:`, error);
       throw error;
-    }),
+    });
+  },
 
   saveAttendance: (date) =>
     fetch(`${API_BASE_URL}/teachers/attendances`, {
@@ -402,8 +407,15 @@ export const teachersAPI = {
       throw error;
     }),
 
-  updateAttendance: (date, attendances) =>
-    fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
+  updateAttendance: (date, attendances) => {
+    console.log(`[API] updateAttendance: Updating attendance for date ${date}`, {
+      date: date,
+      attendancesCount: attendances.length,
+      firstAttendance: attendances.length > 0 ? attendances[0] : null,
+      requestBody: { attendanceUpdates: attendances }
+    });
+    
+    return fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
       method: 'PUT',
       mode: 'cors',
       credentials: 'include',
@@ -414,6 +426,8 @@ export const teachersAPI = {
       body: JSON.stringify({ attendanceUpdates: attendances })
     })
     .then(async response => {
+      console.log(`[API] updateAttendance: Response status: ${response.status}`);
+      
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = 'Gagal memperbarui kehadiran';
@@ -435,7 +449,8 @@ export const teachersAPI = {
     .catch(error => {
       console.error(`[API] Error updating attendance for date ${date}:`, error);
       throw error;
-    }),
+    });
+  },
 
   getAttendanceHistory: (studentId) =>
     fetch(`${API_BASE_URL}/teachers/attendances/history/${studentId}`, {
@@ -1276,19 +1291,19 @@ export const classesAPI = {
 // Curriculums API
 export const curriculumsAPI = {
   getAll: () =>
-    fetch(`${API_BASE_URL}/curriculums`, {
+    fetch(`${API_BASE_URL}/curriculum`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
   getById: (id) =>
-    fetch(`${API_BASE_URL}/curriculums/${id}`, {
+    fetch(`${API_BASE_URL}/curriculum/${id}`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
   create: (curriculumData) =>
-    fetch(`${API_BASE_URL}/curriculums`, {
+    fetch(`${API_BASE_URL}/curriculum`, {
       method: 'POST',
       ...getCommonOptions(),
       headers: getHeaders(),
@@ -1296,7 +1311,7 @@ export const curriculumsAPI = {
     }).then(handleResponse),
 
   update: (id, curriculumData) =>
-    fetch(`${API_BASE_URL}/curriculums/0`, {
+    fetch(`${API_BASE_URL}/curriculum/${id}`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),
@@ -1304,7 +1319,7 @@ export const curriculumsAPI = {
     }).then(handleResponse),
 
   delete: (id) =>
-    fetch(`${API_BASE_URL}/curriculums/${id}`, {
+    fetch(`${API_BASE_URL}/curriculum/${id}`, {
       method: 'DELETE',
       ...getCommonOptions(),
       headers: getHeaders()

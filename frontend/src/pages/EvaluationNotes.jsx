@@ -749,9 +749,7 @@ const EvaluationNotes = () => {
                         <span className="badge bg-success ms-2">Aktif</span>
                       )}
                     </h5>
-                    <p className="card-text text-muted mb-3">
-                      {semester.description || 'Semester ' + semester.number}
-                    </p>
+                   
                     <div className="mt-auto text-end">
                       <button
                         className="btn btn-primary"
@@ -788,7 +786,11 @@ const EvaluationNotes = () => {
               >
                 ← Kembali ke Daftar Semester
               </button>
-              <h2 className="mb-0">Catatan Evaluasi - {selectedSemester?.name}</h2>
+              <h2 className="mb-0">
+                Catatan Evaluasi
+                {selectedSemester?.name && ` - ${selectedSemester.name}`}
+                {!selectedSemester?.name && selectedSemester?.number && ` - Semester ${selectedSemester.number}`}
+              </h2>
             </div>
           </div>
           {isWaliKelas && !loading && (

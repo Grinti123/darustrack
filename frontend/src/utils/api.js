@@ -1290,36 +1290,102 @@ export const classesAPI = {
 
 // Curriculums API
 export const curriculumsAPI = {
-  getAll: () =>
-    fetch(`${API_BASE_URL}/curriculum`, {
+  getAll: () => {
+    console.log('[API] Fetching all curriculums');
+    return fetch(`${API_BASE_URL}/curriculums`, {
       ...getCommonOptions(),
       headers: getHeaders()
-    }).then(handleResponse),
+    })
+    .then(response => {
+      console.log(`[API] Get all curriculums response status: ${response.status}`);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log('[API] Get all curriculums successful:', data);
+      return data;
+    })
+    .catch(error => {
+      console.error('[API] Get all curriculums failed:', error);
+      throw error;
+    });
+  },
 
-  getById: (id) =>
-    fetch(`${API_BASE_URL}/curriculum/${id}`, {
+  getById: (id) => {
+    console.log(`[API] Fetching curriculum by ID: ${id}`);
+    return fetch(`${API_BASE_URL}/curriculums/${id}`, {
       ...getCommonOptions(),
       headers: getHeaders()
-    }).then(handleResponse),
+    })
+    .then(response => {
+      console.log(`[API] Get curriculum by ID response status: ${response.status}`);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log('[API] Get curriculum by ID successful:', data);
+      return data;
+    })
+    .catch(error => {
+      console.error('[API] Get curriculum by ID failed:', error);
+      throw error;
+    });
+  },
 
-  create: (curriculumData) =>
-    fetch(`${API_BASE_URL}/curriculum`, {
+  create: (curriculumData) => {
+    console.log('[API] Creating curriculum with data:', curriculumData);
+    return fetch(`${API_BASE_URL}/curriculums`, {
       method: 'POST',
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(curriculumData)
-    }).then(handleResponse),
+    })
+    .then(response => {
+      console.log(`[API] Create curriculum response status: ${response.status}`);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log('[API] Create curriculum successful:', data);
+      return data;
+    })
+    .catch(error => {
+      console.error('[API] Create curriculum failed:', error);
+      throw error;
+    });
+  },
 
-  update: (id, curriculumData) =>
-    fetch(`${API_BASE_URL}/curriculum/${id}`, {
+  update: (id, curriculumData) => {
+    // Ensure request body follows API specification (name and description are optional)
+    const requestBody = {};
+    if (curriculumData.name !== undefined) requestBody.name = curriculumData.name;
+    if (curriculumData.description !== undefined) requestBody.description = curriculumData.description;
+    
+    console.log(`[API] Updating curriculum with ID: ${id} (using fixed ID 0), data:`, requestBody);
+    
+    // Always use "/curriculums/0" for updates regardless of id
+    return fetch(`${API_BASE_URL}/curriculums/0`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),
-      body: JSON.stringify(curriculumData)
-    }).then(handleResponse),
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => {
+      console.log(`[API] Update curriculum response status: ${response.status}`);
+      if (response.status === 404) {
+        console.warn('[API] Curriculum with ID 0 not found, may need to create it first');
+      }
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log('[API] Update curriculum successful:', data);
+      return data;
+    })
+    .catch(error => {
+      console.error('[API] Update curriculum failed:', error);
+      throw error;
+    });
+  },
 
   delete: (id) =>
-    fetch(`${API_BASE_URL}/curriculum/${id}`, {
+    fetch(`${API_BASE_URL}/curriculums`, {
       method: 'DELETE',
       ...getCommonOptions(),
       headers: getHeaders()

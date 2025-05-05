@@ -1361,7 +1361,7 @@ export const curriculumsAPI = {
     console.log(`[API] Updating curriculum with ID: ${id} (using fixed ID 0), data:`, requestBody);
     
     // Always use "/curriculums/0" for updates regardless of id
-    return fetch(`${API_BASE_URL}/curriculums/0`, {
+    return fetch(`${API_BASE_URL}/curriculums/1`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),

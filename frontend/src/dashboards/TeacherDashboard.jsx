@@ -43,9 +43,20 @@ function TeacherDashboard() {
         class_id: profileResponse.class_id
       })
 
-      // Set class data from my-class response
-      setClassData(classResponse)
+      // Extract class data from the response
       console.log('My class data:', classResponse) // For debugging
+      
+      // Check if the response has the class property in the expected structure
+      if (classResponse && classResponse.class) {
+        setClassData(classResponse.class)
+      } else if (classResponse && typeof classResponse === 'object') {
+        // If class is not nested but directly in the response
+        setClassData(classResponse)
+      } else {
+        console.error('Unexpected class data structure:', classResponse)
+        setError('Format data kelas tidak sesuai')
+      }
+      
       setError(null)
     } catch (err) {
       console.error('Error fetching teacher data:', err)
@@ -98,10 +109,10 @@ function TeacherDashboard() {
               <hr />
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Informasi Kelas</h6>
-                <p className="mb-1"><strong>Nama Kelas:</strong> {classData?.class_name || '-'}</p>
-                <p className="mb-1"><strong>Tingkat:</strong> {classData?.grade_level || '-'}</p>
-                <p className="mb-1"><strong>ID Kelas:</strong> {classData?.class_id || '-'}</p>
-                <p className="mb-1"><strong>Jumlah Siswa:</strong> {(classData?.students || []).length} siswa</p>
+                <p className="mb-1"><strong>Nama Kelas:</strong> {classData?.name || '-'}</p>
+                
+                <p className="mb-1"><strong>ID Kelas:</strong> {classData?.id || '-'}</p>
+      
               </div>
             </div>
           </div>

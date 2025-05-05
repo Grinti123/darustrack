@@ -101,19 +101,19 @@ const AcademicAssessment = () => {
   };
 
   const fetchGrades = async (semesterId) => {
-    try {
-      setLoading(true);
+      try {
+        setLoading(true);
       console.log(`Fetching grades for semester ${semesterId}...`);
-      const data = await teachersAPI.getGrades();
-      console.log('Received grades:', data);
-      setGrades(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error fetching grades:', err);
-      toast.error('Gagal memuat data nilai: ' + (err.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
+        const data = await teachersAPI.getGrades();
+        console.log('Received grades:', data);
+        setGrades(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching grades:', err);
+        toast.error('Gagal memuat data nilai: ' + (err.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const fetchCategories = async (subjectId) => {
     try {
@@ -435,11 +435,11 @@ const AcademicAssessment = () => {
         </div>
 
         {loadingSemesters ? (
-          <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
         ) : semesters.length > 0 ? (
           <div className="row">
             {semesters.map((semester) => (
@@ -540,8 +540,8 @@ const AcademicAssessment = () => {
             ))}
           </div>
         ) : (
-          <div className="alert alert-info" role="alert">
-            Tidak ada data nilai yang tersedia.
+      <div className="alert alert-info" role="alert">
+        Tidak ada data nilai yang tersedia.
           </div>
         )}
       </div>
@@ -762,60 +762,60 @@ const AcademicAssessment = () => {
   }
 
   if (currentView === 'categories') {
-    if (selectedCategory) {
-      return (
-        <div className="container-fluid py-4">
-          <div className="d-flex align-items-center mb-4">
-            <button
-              className="btn btn-link text-decoration-none p-0 me-3"
-              onClick={() => {
-                setSelectedCategory(null);
-                setDetails([]);
-                setEditingDetail(null);
-                setCategoryDetails({
-                  name: '',
-                  date: new Date().toISOString().split('T')[0]
-                });
+  if (selectedCategory) {
+    return (
+      <div className="container-fluid py-4">
+        <div className="d-flex align-items-center mb-4">
+          <button
+            className="btn btn-link text-decoration-none p-0 me-3"
+            onClick={() => {
+              setSelectedCategory(null);
+              setDetails([]);
+              setEditingDetail(null);
+              setCategoryDetails({
+                name: '',
+                date: new Date().toISOString().split('T')[0]
+              });
                 setCurrentView('categories');
-              }}
-              style={{ color: '#000', fontSize: '1rem' }}
-            >
-              ← {selectedGrade.subject_name}
-            </button>
-            <h2 className="mb-0">{selectedCategory.name}</h2>
-          </div>
+            }}
+            style={{ color: '#000', fontSize: '1rem' }}
+          >
+            ← {selectedGrade.subject_name}
+          </button>
+          <h2 className="mb-0">{selectedCategory.name}</h2>
+        </div>
 
-          {isWaliKelas && (
-            <div className="card border-0 shadow-sm mb-4">
-              <div className="card-body">
-                <h6 className="mb-3">
-                  {editingDetail ? 'Edit Detail Kategori' : 'Tambah Detail Kategori'}
-                </h6>
-                <form onSubmit={editingDetail ? handleUpdateCategoryDetail : handleAddCategoryDetails}>
-                  <div className="mb-3">
-                    <label htmlFor="detailName" className="form-label">Nama</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="detailName"
-                      value={categoryDetails.name}
-                      onChange={(e) => setCategoryDetails(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Masukkan nama detail"
+        {isWaliKelas && (
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body">
+              <h6 className="mb-3">
+                {editingDetail ? 'Edit Detail Kategori' : 'Tambah Detail Kategori'}
+              </h6>
+              <form onSubmit={editingDetail ? handleUpdateCategoryDetail : handleAddCategoryDetails}>
+                <div className="mb-3">
+                  <label htmlFor="detailName" className="form-label">Nama</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="detailName"
+                    value={categoryDetails.name}
+                    onChange={(e) => setCategoryDetails(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Masukkan nama detail"
                       disabled={addingDetail || updatingDetail}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="detailDate" className="form-label">Tanggal</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="detailDate"
-                      value={categoryDetails.date}
-                      onChange={(e) => setCategoryDetails(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="detailDate" className="form-label">Tanggal</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    id="detailDate"
+                    value={categoryDetails.date}
+                    onChange={(e) => setCategoryDetails(prev => ({ ...prev, date: e.target.value }))}
                       disabled={addingDetail || updatingDetail}
-                    />
-                  </div>
-                  <div className="d-flex gap-2">
+                  />
+                </div>
+                <div className="d-flex gap-2">
                     <button 
                       type="submit" 
                       className="btn btn-primary"
@@ -829,149 +829,149 @@ const AcademicAssessment = () => {
                       ) : (
                         editingDetail ? 'Simpan Perubahan' : 'Simpan'
                       )}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setCategoryDetails({
-                          name: '',
-                          date: new Date().toISOString().split('T')[0]
-                        });
-                        setEditingDetail(null);
-                      }}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setCategoryDetails({
+                        name: '',
+                        date: new Date().toISOString().split('T')[0]
+                      });
+                      setEditingDetail(null);
+                    }}
                       disabled={addingDetail || updatingDetail}
-                    >
-                      {editingDetail ? 'Batal' : 'Reset'}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                  >
+                    {editingDetail ? 'Batal' : 'Reset'}
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
+          </div>
+        )}
 
-          {loadingDetails ? (
-            <div className="text-center py-3">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
+        {loadingDetails ? (
+          <div className="text-center py-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
             </div>
-          ) : details.length > 0 ? (
-            <div className="d-flex flex-column gap-3">
-              {details.map((detail) => (
-                <div
-                  key={detail.id}
-                  className="card border rounded-3"
-                  style={{ backgroundColor: '#fff' }}
-                >
-                  <div className="card-body d-flex justify-content-between align-items-center p-3">
-                    <div>
-                      <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
-                        {detail.name}
-                      </h5>
-                      <small className="text-muted">
-                        {new Date(detail.date).toLocaleDateString('id-ID', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </small>
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      {isWaliKelas && (
-                        <>
-                          <button
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => {
-                              setEditingDetail(detail);
-                              setCategoryDetails({
-                                name: detail.name,
-                                date: detail.date.split('T')[0]
-                              });
-                            }}
+          </div>
+        ) : details.length > 0 ? (
+          <div className="d-flex flex-column gap-3">
+            {details.map((detail) => (
+              <div
+                key={detail.id}
+                className="card border rounded-3"
+                style={{ backgroundColor: '#fff' }}
+              >
+                <div className="card-body d-flex justify-content-between align-items-center p-3">
+                  <div>
+                    <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
+                      {detail.name}
+                    </h5>
+                    <small className="text-muted">
+                      {new Date(detail.date).toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </small>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    {isWaliKelas && (
+                      <>
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => {
+                            setEditingDetail(detail);
+                            setCategoryDetails({
+                              name: detail.name,
+                              date: detail.date.split('T')[0]
+                            });
+                          }}
                             disabled={deletingDetail}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleDeleteCategoryDetail(detail.id)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => handleDeleteCategoryDetail(detail.id)}
                             disabled={deletingDetail}
-                          >
+                        >
                             {deletingDetail && deletingDetailId === detail.id ? (
                               <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             ) : 'Hapus'}
-                          </button>
-                        </>
-                      )}
-                      <button
-                        className="btn btn-light"
-                        style={{
-                          backgroundColor: '#f8f9fa',
-                          color: '#0d6efd',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '6px 16px',
-                          fontSize: '0.9rem',
-                          fontWeight: '500'
-                        }}
-                        onClick={() => setSelectedDetail(detail)}
-                      >
-                        Pilih
-                      </button>
-                    </div>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="btn btn-light"
+                      style={{
+                        backgroundColor: '#f8f9fa',
+                        color: '#0d6efd',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '6px 16px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}
+                      onClick={() => setSelectedDetail(detail)}
+                    >
+                      Pilih
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="alert alert-info">
-              Belum ada detail untuk kategori ini.
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      return (
-        <div className="container-fluid py-4">
-          <div className="d-flex align-items-center mb-4">
-            <button
-              className="btn btn-link text-decoration-none p-0 me-3"
-              onClick={() => {
-                setSelectedGrade(null);
-                setIsAddingCategory(false);
-                setEditingCategory(null);
-                setCategories([]);
-                setCurrentView('subjects');
-              }}
-              style={{ color: '#000', fontSize: '1rem' }}
-            >
-              ← Penilaian Akademik
-            </button>
-            <h2 className="mb-0">{selectedGrade?.subject_name}</h2>
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="alert alert-info">
+            Belum ada detail untuk kategori ini.
+          </div>
+        )}
+      </div>
+    );
+    } else {
+    return (
+      <div className="container-fluid py-4">
+        <div className="d-flex align-items-center mb-4">
+          <button
+            className="btn btn-link text-decoration-none p-0 me-3"
+            onClick={() => {
+              setSelectedGrade(null);
+              setIsAddingCategory(false);
+              setEditingCategory(null);
+              setCategories([]);
+                setCurrentView('subjects');
+            }}
+            style={{ color: '#000', fontSize: '1rem' }}
+          >
+            ← Penilaian Akademik
+          </button>
+            <h2 className="mb-0">{selectedGrade?.subject_name}</h2>
+        </div>
 
-          {(isAddingCategory || editingCategory) ? (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body">
-                <h6 className="mb-3">
-                  {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-                </h6>
-                <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory}>
-                  <div className="mb-3">
-                    <label htmlFor="categoryName" className="form-label">Nama Kategori</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="categoryName"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Masukkan nama kategori"
+        {(isAddingCategory || editingCategory) ? (
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <h6 className="mb-3">
+                {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
+              </h6>
+              <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory}>
+                <div className="mb-3">
+                  <label htmlFor="categoryName" className="form-label">Nama Kategori</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="categoryName"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Masukkan nama kategori"
                       disabled={addingCategory || updatingCategory}
-                    />
-                  </div>
-                  <div className="d-flex gap-2">
+                  />
+                </div>
+                <div className="d-flex gap-2">
                     <button 
                       type="submit" 
                       className="btn btn-primary"
@@ -985,111 +985,111 @@ const AcademicAssessment = () => {
                       ) : (
                         editingCategory ? 'Simpan Perubahan' : 'Simpan'
                       )}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setNewCategoryName('');
-                        setIsAddingCategory(false);
-                        setEditingCategory(null);
-                      }}
-                      disabled={addingCategory || updatingCategory}
-                    >
-                      Batal
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : (
-            <>
-              {isWaliKelas && (
-                <div className="mb-4">
+                  </button>
                   <button
-                    className="btn btn-primary"
-                    onClick={() => setIsAddingCategory(true)}
-                    disabled={loadingCategories}
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setNewCategoryName('');
+                      setIsAddingCategory(false);
+                      setEditingCategory(null);
+                    }}
+                      disabled={addingCategory || updatingCategory}
                   >
-                    Tambah Kategori
+                    Batal
                   </button>
                 </div>
-              )}
+              </form>
+            </div>
+          </div>
+        ) : (
+          <>
+            {isWaliKelas && (
+              <div className="mb-4">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setIsAddingCategory(true)}
+                    disabled={loadingCategories}
+                >
+                  Tambah Kategori
+                </button>
+              </div>
+            )}
 
-              {loadingCategories ? (
+            {loadingCategories ? (
                 <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
                 </div>
-              ) : categories.length > 0 ? (
-                <div className="d-flex flex-column gap-3">
-                  {categories.map((category) => (
-                    <div
-                      key={category.id}
-                      className="card border rounded-3"
-                      style={{ backgroundColor: '#fff' }}
-                    >
-                      <div className="card-body d-flex justify-content-between align-items-center p-3">
-                        <div>
-                          <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
-                            {category.name}
-                          </h5>
-                        </div>
-                        <div className="d-flex align-items-center gap-2">
-                          {isWaliKelas && (
-                            <>
-                              <button
-                                className="btn btn-outline-primary btn-sm"
-                                onClick={() => {
-                                  setEditingCategory(category);
-                                  setNewCategoryName(category.name);
-                                }}
+              </div>
+            ) : categories.length > 0 ? (
+              <div className="d-flex flex-column gap-3">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="card border rounded-3"
+                    style={{ backgroundColor: '#fff' }}
+                  >
+                    <div className="card-body d-flex justify-content-between align-items-center p-3">
+                      <div>
+                        <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
+                          {category.name}
+                        </h5>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {isWaliKelas && (
+                          <>
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => {
+                                setEditingCategory(category);
+                                setNewCategoryName(category.name);
+                              }}
                                 disabled={deletingCategory}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-outline-danger btn-sm"
-                                onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => handleDeleteCategory(category.id)}
                                 disabled={deletingCategory}
-                              >
+                            >
                                 {deletingCategory && category.id === deletingCategoryId ? (
                                   <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 ) : 'Hapus'}
-                              </button>
-                            </>
-                          )}
-                          <button
-                            className="btn btn-light"
-                            style={{
-                              backgroundColor: '#f8f9fa',
-                              color: '#0d6efd',
-                              border: 'none',
-                              borderRadius: '4px',
-                              padding: '6px 16px',
-                              fontSize: '0.9rem',
-                              fontWeight: '500'
-                            }}
-                            onClick={() => setSelectedCategory(category)}
-                          >
-                            Pilih
-                          </button>
-                        </div>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="btn btn-light"
+                          style={{
+                            backgroundColor: '#f8f9fa',
+                            color: '#0d6efd',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 16px',
+                            fontSize: '0.9rem',
+                            fontWeight: '500'
+                          }}
+                          onClick={() => setSelectedCategory(category)}
+                        >
+                          Pilih
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="alert alert-info">
-                  Belum ada kategori penilaian untuk mata pelajaran ini.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      );
-    }
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="alert alert-info">
+                Belum ada kategori penilaian untuk mata pelajaran ini.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
   }
 
   // Add the score modal render function at the end of the component

@@ -1815,7 +1815,8 @@ export const academicYearsAPI = {
       const response = await fetch(`${API_BASE_URL}/academic-years/semester/${semesterId}`, {
         method: 'PUT',
         ...getCommonOptions(),
-        headers: getHeaders()
+        headers: getHeaders(),
+        body: JSON.stringify({ is_active: true })
       });
       
       console.log(`[API] academicYearsAPI.setActiveSemester: Response status: ${response.status}`);

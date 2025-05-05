@@ -27,6 +27,7 @@ const WaliKelasAttendances = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [pendingChanges, setPendingChanges] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [noDataForDate, setNoDataForDate] = useState(false);
   
   // Check if current user is admin
   const isAdmin = userRole === 'admin';
@@ -63,6 +64,7 @@ const WaliKelasAttendances = () => {
   const fetchAllAttendances = async (date) => {
     try {
       setLoading(true);
+      setNoDataForDate(false);
       const data = await teachersAPI.getAllAttendances(date);
       console.log(`All attendances data for date ${date}:`, data);
       
@@ -72,14 +74,17 @@ const WaliKelasAttendances = () => {
           // No attendance data found for this date
           toast.warning("Tidak ada data kehadiran untuk tanggal tersebut");
           setAttendances([]);
+          setNoDataForDate(true);
         } else {
           // Data is in the correct format with student_class_id fields
           setAttendances(data);
+          setNoDataForDate(false);
         }
       } else {
         // Handle unexpected response format
         console.error('Unexpected attendance data format:', data);
         setAttendances([]);
+        setNoDataForDate(true);
         toast.warning("Tidak ada data kehadiran untuk tanggal tersebut");
       }
       
@@ -90,9 +95,11 @@ const WaliKelasAttendances = () => {
       // Extract the error message from the API response if available
       if (err.message && err.message.includes("Tidak ada data kehadiran untuk tanggal tersebut")) {
         toast.warning("Tidak ada data kehadiran untuk tanggal tersebut");
+        setAttendances([]);
+        setNoDataForDate(true);
       } else {
-      setError('Gagal mengambil data kehadiran');
-      toast.error('Gagal mengambil data kehadiran');
+        setError('Gagal mengambil data kehadiran');
+        toast.error('Gagal mengambil data kehadiran');
       }
     } finally {
       setLoading(false);
@@ -334,8 +341,27 @@ const WaliKelasAttendances = () => {
         </div>
       ) : error ? (
         <div className="alert alert-danger">{error}</div>
+      ) : noDataForDate ? (
+        <div className="card">
+          <div className="card-body">
+            <div className="text-center py-5">
+              <i className="bi bi-calendar-x fs-1 text-muted mb-3"></i>
+              <h5 className="text-muted">Tidak ada data kehadiran</h5>
+              <p className="text-muted">Tidak ada data kehadiran untuk tanggal {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: id })}</p>
+              <button 
+                className="btn btn-primary mt-3" 
+                onClick={() => {
+                  setAddDate(selectedDate);
+                  setIsAddModalOpen(true);
+                }}
+              >
+                Buat Data Kehadiran untuk Tanggal Ini
+              </button>
+            </div>
+          </div>
+        </div>
       ) : filteredAttendances.length === 0 ? (
-        <div className="alert alert-info">Tidak ada data kehadiran yang ditemukan untuk tanggal ini</div>
+        <div className="alert alert-info">Tidak ada data kehadiran yang sesuai dengan filter</div>
       ) : (
         <div className="card">
           <div className="card-body">

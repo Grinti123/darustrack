@@ -846,7 +846,7 @@ const EvaluationNotes = () => {
           <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
             <div className="text-center">
               <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
-                <span className="visually-hidden">Loading...</span>
+              <span className="visually-hidden">Loading...</span>
               </div>
               <p className="text-muted">Memuat data evaluasi...</p>
             </div>
@@ -1013,21 +1013,21 @@ const EvaluationNotes = () => {
   const renderEvaluationDetails = () => {
     // Show loading spinner if loading is true, even without evaluation details
     if (loading) {
-      return (
-        <div className="container py-4">
-          <div className="d-flex align-items-center mb-4">
-            <button
-              className="btn btn-link text-decoration-none p-0 me-3"
-              onClick={handleBackToList}
-              style={{ color: '#000', fontSize: '1rem' }}
-            >
-              ← Kembali ke Daftar Evaluasi
-            </button>
+    return (
+      <div className="container py-4">
+        <div className="d-flex align-items-center mb-4">
+          <button
+            className="btn btn-link text-decoration-none p-0 me-3"
+            onClick={handleBackToList}
+            style={{ color: '#000', fontSize: '1rem' }}
+          >
+            ← Kembali ke Daftar Evaluasi
+          </button>
             <h2 className="mb-0">
               Detail Evaluasi: {viewingEvaluation ? viewingEvaluation.title : ""}
             </h2>
-          </div>
-          
+        </div>
+
           <div className="text-center py-4">
             <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading...</span>
@@ -1073,48 +1073,48 @@ const EvaluationNotes = () => {
           </h2>
         </div>
 
-        <div className="row">
-          <div className="col-12 mb-4">
-            <div className="card">
-              <div className="card-header">
-                <h5 className="mb-0">Daftar Siswa</h5>
-              </div>
-              <div className="card-body">
+          <div className="row">
+            <div className="col-12 mb-4">
+              <div className="card">
+                <div className="card-header">
+                  <h5 className="mb-0">Daftar Siswa</h5>
+                </div>
+                <div className="card-body">
                 {studentsArray && studentsArray.length > 0 ? (
-                  <div className="list-group">
+                    <div className="list-group">
                     {studentsArray.map((student) => (
                       <div 
                         key={`detail-${student.student_evaluation_id || student.id || student.student_id}`} 
                         className="list-group-item d-flex justify-content-between align-items-center"
                       >
-                        <div className="ms-2 me-auto">
-                          <div className="fw-bold">{student.name || student.student_name}</div>
+                          <div className="ms-2 me-auto">
+                            <div className="fw-bold">{student.name || student.student_name}</div>
                           <small className="text-muted">
                             {student.description ? `"${student.description}"` : "Belum ada deskripsi"}
                           </small>
                           <br />
                           <small className="text-muted">NISN: {student.nisn || "N/A"}</small>
-                        </div>
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => {
+                          </div>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => {
                             handleEditStudentDescription(student, evaluationDetails?.id);
-                          }}
-                        >
+                            }}
+                          >
                           PILIH
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="alert alert-info">
-                    Belum ada data siswa
-                  </div>
-                )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="alert alert-info">
+                      Belum ada data siswa
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
       </div>
     );
   };
@@ -1123,19 +1123,19 @@ const EvaluationNotes = () => {
   const renderStudentEdit = () => {
     // Show loading spinner if loading is true
     if (loading) {
-      return (
-        <div className="container py-4">
-          <div className="d-flex align-items-center mb-4">
-            <button
-              className="btn btn-link text-decoration-none p-0 me-3"
-              onClick={handleBackToDetails}
-              style={{ color: '#000', fontSize: '1rem' }}
-            >
-              ← Kembali ke Detail Evaluasi
-            </button>
-            <h2 className="mb-0">Edit Deskripsi Siswa</h2>
-          </div>
-          
+    return (
+      <div className="container py-4">
+        <div className="d-flex align-items-center mb-4">
+          <button
+            className="btn btn-link text-decoration-none p-0 me-3"
+            onClick={handleBackToDetails}
+            style={{ color: '#000', fontSize: '1rem' }}
+          >
+            ← Kembali ke Detail Evaluasi
+          </button>
+          <h2 className="mb-0">Edit Deskripsi Siswa</h2>
+        </div>
+
           <div className="text-center py-4">
             <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading...</span>
@@ -1167,33 +1167,33 @@ const EvaluationNotes = () => {
           <h2 className="mb-0">Edit Deskripsi Siswa</h2>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h5 className="mb-0">
-              {editingStudent.name || editingStudent.student_name}
-            </h5>
-          </div>
-          <div className="card-body">
-            <div className="mb-4">
-              <label className="form-label">Deskripsi Evaluasi</label>
-              <textarea
-                className="form-control"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows="6"
-                placeholder="Masukkan deskripsi evaluasi untuk siswa ini"
-              ></textarea>
+          <div className="card">
+            <div className="card-header">
+              <h5 className="mb-0">
+                {editingStudent.name || editingStudent.student_name}
+              </h5>
             </div>
-            <div className="d-flex gap-2">
-              <button
-                className="btn btn-primary"
-                onClick={() => {
+            <div className="card-body">
+              <div className="mb-4">
+                <label className="form-label">Deskripsi Evaluasi</label>
+                <textarea
+                  className="form-control"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows="6"
+                  placeholder="Masukkan deskripsi evaluasi untuk siswa ini"
+                ></textarea>
+              </div>
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
                   // If evaluationDetails is an array, we need to use viewingEvaluation.id
                   const evalId = Array.isArray(evaluationDetails)
                     ? viewingEvaluation?.id
                     : evaluationDetails?.id || viewingEvaluation?.id;
                   
-                  const studentId = editingStudent?.id || editingStudent?.student_id;
+                    const studentId = editingStudent?.id || editingStudent?.student_id;
                   
                   console.log('Saving student description:', {
                     student: editingStudent.name || editingStudent.student_name,
@@ -1203,20 +1203,20 @@ const EvaluationNotes = () => {
                     description: editDescription
                   });
                   
-                  handleSaveStudentDescription(evalId, studentId);
-                }}
-              >
-                Simpan Deskripsi
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={handleBackToDetails}
-              >
-                Batal
-              </button>
+                    handleSaveStudentDescription(evalId, studentId);
+                  }}
+                >
+                  Simpan Deskripsi
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleBackToDetails}
+                >
+                  Batal
+                </button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
     );
   };

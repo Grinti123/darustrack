@@ -43,8 +43,10 @@ function Sidebar({ isOpen, toggleSidebar }) {
       { title: 'Dashboard', path: '/dashboard', icon: 'bi bi-grid' },
       { title: 'Informasi Kurikulum', path: '/curriculum', icon: 'bi bi-info-circle' },
       { title: 'Informasi Mata Pelajaran', path: '/subjects', icon: 'bi bi-book' },
-      { title: 'Kelola Pengguna', path: '/user-management', icon: 'bi bi-people' },
-      { title: 'Kelola Kelas', path: '/classes', icon: 'bi bi-building' }
+      { title: 'Kelola Tahun Ajaran', path: '/academic-year', icon: 'bi bi-calendar' },
+      { title: 'Kelola Siswa', path: '/student-management', icon: 'bi bi-person' },
+      { title: 'Kelola Jadwal Kelas', path: '/classes', icon: 'bi bi-clock' },
+      { title: 'Kelola Pengguna', path: '/user-management', icon: 'bi bi-people' }
     ],
     kepala_sekolah: [
       { title: 'Dashboard', path: '/dashboard', icon: 'bi bi-grid' },

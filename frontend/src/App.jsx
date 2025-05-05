@@ -1,11 +1,14 @@
 // App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { SemesterProvider } from './contexts/SemesterContext'
 import { ToastContainer, toast } from 'react-toastify'
 import { Toaster } from 'react-hot-toast'
 import 'react-toastify/dist/ReactToastify.css'
 import { useEffect } from 'react'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Curriculum from './pages/Curriculum'
@@ -21,6 +24,9 @@ import UserManagement from './pages/UserManagement'
 import SubjectManagement from './pages/SubjectManagement'
 import ClassManagement from './pages/ClassManagement'
 import SubjectDetail from './pages/SubjectDetail'
+import StudentManagement from './pages/StudentManagement'
+import AcademicYearManagement from './pages/AcademicYearManagement'
+
 
 function App() {
   const { currentUser, userRole, logout } = useAuth()
@@ -84,10 +90,14 @@ function App() {
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/" element={
           <ProtectedRoute allowedRoles={['admin', 'wali_kelas', 'orang_tua', 'kepala_sekolah']}>
-            <DashboardLayout />
+            <SemesterProvider>
+              <DashboardLayout />
+            </SemesterProvider>
           </ProtectedRoute>
         }>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -143,6 +153,18 @@ function App() {
           <Route path="user-management" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <UserManagement />
+            </ProtectedRoute>
+          } />
+
+          <Route path="student-management" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <StudentManagement />
+            </ProtectedRoute>
+          } />
+
+          <Route path="academic-year" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AcademicYearManagement />
             </ProtectedRoute>
           } />
 

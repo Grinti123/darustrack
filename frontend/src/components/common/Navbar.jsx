@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import SemesterInfo from './SemesterInfo';
 
 function Navbar({ toggleSidebar }) {
   const { currentUser, logout, refreshToken } = useAuth();
@@ -119,6 +120,11 @@ function Navbar({ toggleSidebar }) {
 
         <span className="navbar-brand d-md-none">DarusTrack</span>
 
+        {/* Semester Info - visible on medium screens and up */}
+        <div className="me-3 d-none d-md-block border-end pe-3">
+          <SemesterInfo />
+        </div>
+
         <button
           className={`btn btn-sm ${getTokenButtonStyle()} ms-2 d-none d-md-inline-flex align-items-center`}
           onClick={handleRefreshToken}
@@ -134,6 +140,11 @@ function Navbar({ toggleSidebar }) {
         </button>
 
         <div className="ms-auto d-flex align-items-center">
+          {/* Semester Info - visible only on small screens */}
+          <div className="me-3 d-block d-md-none">
+            <SemesterInfo />
+          </div>
+          
           <div className="dropdown">
             <button
               className="btn btn-light dropdown-toggle d-flex align-items-center"

@@ -38,10 +38,11 @@ const Schedule = () => {
             scheduleByDay[item.day] = [];
           }
           scheduleByDay[item.day].push({
-            subject: item.subject.name,
+            subject: item.subject_name,
+            subjectId: item.subject_id,
             timeStart: item.start_time,
             timeEnd: item.end_time,
-            ...(userRole === 'teacher' ? { class: item.class_id } : {})
+            ...(userRole === 'teacher' ? { class: item.class_name } : {})
           });
         });
       }

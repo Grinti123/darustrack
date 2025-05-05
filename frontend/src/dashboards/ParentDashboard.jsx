@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 function ParentDashboard() {
   const { currentUser } = useAuth()
   const [userProfile, setUserProfile] = useState(null)
-  const [parentProfile, setParentProfile] = useState(null)
+  const [studentData, setStudentData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -19,10 +19,10 @@ function ParentDashboard() {
       console.log('User profile data:', userData)
       setUserProfile(userData)
 
-      // Fetch parent-specific profile
-      const parentData = await parentsAPI.getProfile()
-      console.log('Parent profile data:', parentData)
-      setParentProfile(parentData)
+      // Fetch student data using the correct endpoint
+      const student = await parentsAPI.getStudentData()
+      console.log('Student data:', student)
+      setStudentData(student)
 
       setError(null)
     } catch (err) {
@@ -102,14 +102,13 @@ function ParentDashboard() {
         </div>
       </div>
 
-      {/* Parent Profile Data - Child Information */}
-      {parentProfile && (
+      {/* Student Information */}
         <div className="card">
           <div className="card-header bg-white">
             <h5 className="card-title mb-0">Data Anak</h5>
           </div>
           <div className="card-body">
-            {!parentProfile.name ? (
+          {!studentData ? (
               <div className="alert alert-info">
                 <i className="bi bi-info-circle me-2"></i>
                 Tidak ada data anak yang tersedia.
@@ -118,25 +117,28 @@ function ParentDashboard() {
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <p className="text-muted mb-1">Nama</p>
-                  <p className="fw-bold mb-0">{parentProfile.name || '-'}</p>
+                <p className="fw-bold mb-0">{studentData.name || '-'}</p>
                 </div>
                 <div className="col-md-6 mb-3">
                   <p className="text-muted mb-1">NISN</p>
-                  <p className="fw-bold mb-0">{parentProfile.nisn || '-'}</p>
+                <p className="fw-bold mb-0">{studentData.nisn || '-'}</p>
                 </div>
                 <div className="col-md-6 mb-3">
                   <p className="text-muted mb-1">Tanggal Lahir</p>
-                  <p className="fw-bold mb-0">{parentProfile.birth_date || '-'}</p>
+                <p className="fw-bold mb-0">{studentData.birth_date || '-'}</p>
                 </div>
                 <div className="col-md-6 mb-3">
                   <p className="text-muted mb-1">Kelas</p>
-                  <p className="fw-bold mb-0">{parentProfile.class && parentProfile.class.name ? parentProfile.class.name : '-'}</p>
+                <p className="fw-bold mb-0">
+                  {studentData.student_class && studentData.student_class.length > 0
+                    ? (studentData.student_class[0].class?.name || studentData.student_class[0].id || '-')
+                    : '-'}
+                </p>
                 </div>
               </div>
             )}
           </div>
         </div>
-      )}
     </div>
   )
 }

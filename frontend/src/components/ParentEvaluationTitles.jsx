@@ -3,10 +3,10 @@ import { parentsAPI, semesterAPI } from '../utils/api';
 import { useSemester } from '../contexts/SemesterContext';
 import { toast } from 'react-toastify';
 
-const ParentEvaluations = () => {
+const ParentEvaluationTitles = () => {
   const [loading, setLoading] = useState(true);
-  const [evaluations, setEvaluations] = useState([]);
-  const [selectedEvaluation, setSelectedEvaluation] = useState(null);
+  const [evaluationTitles, setEvaluationTitles] = useState([]);
+  const [selectedTitle, setSelectedTitle] = useState(null);
   const [evaluationDetails, setEvaluationDetails] = useState(null);
   const [currentView, setCurrentView] = useState('semesters'); // 'semesters', 'list', or 'details'
   const { activeSemester } = useSemester();
@@ -38,39 +38,31 @@ const ParentEvaluations = () => {
     }
   };
 
-  const fetchEvaluations = async (semesterId) => {
-    try {
-      setLoading(true);
-      const response = await parentsAPI.getEvaluations(semesterId);
-      console.log('Fetched parent evaluations:', response);
-      setEvaluations(Array.isArray(response) ? response : []);
-    } catch (err) {
-      console.error('Error fetching evaluations:', err);
-      toast.error('Gagal mengambil data evaluasi');
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectSemester = (semester) => {
+    setSelectedSemester(semester);
+    setCurrentView('list');
+    fetchEvaluationTitles(semester.id);
   };
 
   const fetchEvaluationTitles = async (semesterId) => {
     try {
       setLoading(true);
-      const response = await parentsAPI.getEvaluationTitles(semesterId);
+      // Try to use the new getEvaluationTitles endpoint
+      const response = await parentsAPI.getEvaluationTitles(semesterId)
+        .catch(async () => {
+          // Fall back to the regular getEvaluations endpoint if the titles endpoint fails
+          console.log('Falling back to regular evaluations endpoint');
+          return await parentsAPI.getEvaluations(semesterId);
+        });
+      
       console.log('Fetched evaluation titles:', response);
-      setEvaluations(Array.isArray(response) ? response : []);
+      setEvaluationTitles(Array.isArray(response) ? response : []);
     } catch (err) {
       console.error('Error fetching evaluation titles:', err);
       toast.error('Gagal mengambil data judul evaluasi');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSelectSemester = (semester) => {
-    setSelectedSemester(semester);
-    setCurrentView('list');
-    // Try to fetch titles first, fall back to regular evaluations if that fails
-    fetchEvaluationTitles(semester.id).catch(() => fetchEvaluations(semester.id));
   };
 
   const handleViewDetails = async (evaluation) => {
@@ -81,7 +73,7 @@ const ParentEvaluations = () => {
 
     try {
       setLoading(true);
-      setSelectedEvaluation(evaluation);
+      setSelectedTitle(evaluation);
 
       console.log('Evaluation data:', evaluation);
 
@@ -100,9 +92,9 @@ const ParentEvaluations = () => {
         } catch (directErr) {
           console.log('Direct endpoint failed, falling back to legacy endpoint:', directErr);
           // Fall back to the legacy endpoint if the direct one fails
-        const response = await parentsAPI.getEvaluationDetails(selectedSemester.id, evaluation.id);
+          const response = await parentsAPI.getEvaluationDetails(selectedSemester.id, evaluation.id);
           console.log('Fetched evaluation details from legacy endpoint:', response);
-        setEvaluationDetails(response);
+          setEvaluationDetails(response);
         }
       }
 
@@ -118,11 +110,11 @@ const ParentEvaluations = () => {
   const handleBackToSemesters = () => {
     setCurrentView('semesters');
     setSelectedSemester(null);
-    setEvaluations([]);
+    setEvaluationTitles([]);
   };
 
   const handleBackToList = () => {
-    setSelectedEvaluation(null);
+    setSelectedTitle(null);
     setEvaluationDetails(null);
     setCurrentView('list');
   };
@@ -191,8 +183,8 @@ const ParentEvaluations = () => {
     );
   };
 
-  // Render evaluation list view
-  const renderEvaluationList = () => {
+  // Render evaluation title list view
+  const renderTitlesList = () => {
     return (
       <>
         <div className="row mb-4">
@@ -205,13 +197,13 @@ const ParentEvaluations = () => {
               >
                 ← Kembali ke Daftar Semester
               </button>
-              <h2 className="mb-0">Catatan Evaluasi Siswa - {selectedSemester?.name}</h2>
+              <h2 className="mb-0">Judul Evaluasi - {selectedSemester?.name}</h2>
             </div>
           </div>
           <div className="col-auto">
             <button
               className="btn btn-outline-primary"
-              onClick={() => fetchEvaluations(selectedSemester.id)}
+              onClick={() => fetchEvaluationTitles(selectedSemester.id)}
               disabled={loading}
             >
               <i className="bi bi-arrow-clockwise me-1"></i>
@@ -220,21 +212,22 @@ const ParentEvaluations = () => {
           </div>
         </div>
 
-        {/* Evaluations List */}
+        {/* Evaluation Titles List */}
         {loading ? (
           <div className="text-center py-4">
             <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
           </div>
-        ) : evaluations.length > 0 ? (
+        ) : evaluationTitles.length > 0 ? (
           <div className="row">
-            {evaluations.map((evaluation) => (
+            {evaluationTitles.map((evaluation) => (
               <div key={`eval-${evaluation.id}`} className="col-md-6 col-xl-4 mb-4">
                 <div className="card h-100 shadow-sm">
                   <div className="card-body d-flex flex-column">
                     <h5 className="card-title">{evaluation.title}</h5>
                     <p className="card-text text-muted mb-3">
+                      {evaluation.created_at ? `Dibuat: ${new Date(evaluation.created_at).toLocaleDateString()}` : ''}
                     </p>
                     <div className="mt-auto text-end">
                       <button
@@ -272,7 +265,9 @@ const ParentEvaluations = () => {
           >
             ← Kembali ke Daftar Evaluasi
           </button>
-          <h2 className="mb-0">Detail Evaluasi</h2>
+          <h2 className="mb-0">
+            Detail Evaluasi: {selectedTitle?.title || ""}
+          </h2>
         </div>
 
         {loading ? (
@@ -284,7 +279,7 @@ const ParentEvaluations = () => {
         ) : (
           <div className="card">
             <div className="card-header">
-              <h5 className="mb-0">{selectedEvaluation?.title || 'Catatan Evaluasi'}</h5>
+              <h5 className="mb-0">{selectedTitle?.title || ''}</h5>
             </div>
             <div className="card-body">
               {/* Description */}
@@ -294,7 +289,7 @@ const ParentEvaluations = () => {
                   {evaluationDetails.description ? (
                     <p className="mb-0">{evaluationDetails.description}</p>
                   ) : (
-                    <p className="text-muted mb-0">Belum ada catatan evaluasi</p>
+                    <p className="text-muted mb-0">Tidak ada deskripsi</p>
                   )}
                 </div>
               </div>
@@ -375,10 +370,10 @@ const ParentEvaluations = () => {
     default:
       return (
         <div className="container py-4">
-          {renderEvaluationList()}
+          {renderTitlesList()}
         </div>
       );
   }
 };
 
-export default ParentEvaluations;
+export default ParentEvaluationTitles;

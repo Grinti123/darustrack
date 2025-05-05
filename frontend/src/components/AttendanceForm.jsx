@@ -26,6 +26,7 @@ const AttendanceForm = ({ onSuccess }) => {
 
       if (attendanceData && Array.isArray(attendanceData)) {
         console.log('Setting attendance data');
+        // Make sure we have access to student_class_id in the response
         setAttendanceData(attendanceData);
         setDateSubmitted(true);
       } else {
@@ -84,10 +85,13 @@ const AttendanceForm = ({ onSuccess }) => {
     }
   };
 
-  const handleStatusChange = (attendanceId, newStatus) => {
+  const handleStatusChange = (studentClassId, newStatus) => {
+    console.log(`Changing status for student ${studentClassId} to ${newStatus}`);
+    
+    // Only update the specific student's status
     setAttendanceData(prev =>
       prev.map(record =>
-        record.id === attendanceId
+        record.student_class_id === studentClassId
           ? { ...record, status: newStatus }
           : record
       )
@@ -98,17 +102,28 @@ const AttendanceForm = ({ onSuccess }) => {
     try {
       setLoading(true);
 
+      // Filter out invalid attendance records and records with "Not Set" status
+      const validAttendanceData = attendanceData.filter(attendance => 
+        attendance.student_class_id && attendance.status && attendance.status !== 'Not Set'
+      );
+
+      if (validAttendanceData.length === 0) {
+        toast.warning('Tidak ada data kehadiran valid untuk disimpan');
+        setLoading(false);
+        return;
+      }
+
       // Format the data to match API requirements:
-      // attendance as array of { student_id: string, status: enum }
-      const updates = attendanceData.map(attendance => ({
-        student_id: attendance.student_id,
+      // attendance as array of { student_class_id, status }
+      const attendanceUpdates = validAttendanceData.map(attendance => ({
+        student_class_id: attendance.student_class_id,
         status: attendance.status || 'hadir'
       }));
 
-      console.log('Sending attendance updates:', updates);
+      console.log('Sending attendance updates:', attendanceUpdates);
 
-      // Send the updates to /teachers/attendances/{date}
-      const response = await teachersAPI.updateAttendance(selectedDate, updates);
+      // Send the updates to /teachers/attendances?date={selectedDate}
+      const response = await teachersAPI.updateAttendance(selectedDate, attendanceUpdates);
 
       if (response) {
         toast.success('Status kehadiran berhasil diperbarui');
@@ -119,7 +134,11 @@ const AttendanceForm = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error('Error saving attendance:', error);
+      if (error.message && error.message.includes('student_class_id tidak terdaftar')) {
+        toast.error('Beberapa siswa tidak terdaftar di kelas ini pada tanggal tersebut');
+      } else {
       toast.error('Gagal menyimpan status kehadiran');
+      }
     } finally {
       setLoading(false);
     }
@@ -256,44 +275,41 @@ const AttendanceForm = ({ onSuccess }) => {
                     <tr>
                       <th>No.</th>
                       <th>Nama</th>
-                      <th>Action</th>
+                      <th className="text-end">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {attendanceData.map((attendance, index) => (
-                      <tr key={attendance.id}>
+                      <tr key={attendance.student_class_id || index}>
                         <td>{index + 1}.</td>
-                        <td>
-                          {attendance.student ? (
-                            <span className="text-uppercase">{attendance.student.name}</span>
-                          ) : (
-                            <span className="text-muted text-uppercase">{attendance.student_id}</span>
-                          )}
+                        <td className="text-uppercase">
+                          {attendance.student ? attendance.student.name : 
+                           attendance.studentName || 'Unknown'}
                         </td>
                         <td>
                           {isWaliKelas ? (
-                            <div className="d-flex gap-2">
+                            <div className="d-flex justify-content-end gap-2">
                               <button
-                                className={`btn ${attendance.status === 'hadir' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => handleStatusChange(attendance.id, 'hadir')}
+                                className={`btn btn-sm ${attendance.status === 'hadir' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => handleStatusChange(attendance.student_class_id, 'hadir')}
                               >
                                 Hadir
                               </button>
                               <button
-                                className={`btn ${attendance.status === 'izin' ? 'btn-warning' : 'btn-outline-warning'}`}
-                                onClick={() => handleStatusChange(attendance.id, 'izin')}
+                                className={`btn btn-sm ${attendance.status === 'izin' ? 'btn-warning' : 'btn-outline-warning'}`}
+                                onClick={() => handleStatusChange(attendance.student_class_id, 'izin')}
                               >
                                 Izin
                               </button>
                               <button
-                                className={`btn ${attendance.status === 'sakit' ? 'btn-danger' : 'btn-outline-danger'}`}
-                                onClick={() => handleStatusChange(attendance.id, 'sakit')}
+                                className={`btn btn-sm ${attendance.status === 'sakit' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                onClick={() => handleStatusChange(attendance.student_class_id, 'sakit')}
                               >
                                 Sakit
                               </button>
                               <button
-                                className={`btn ${attendance.status === 'alpha' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                onClick={() => handleStatusChange(attendance.id, 'alpha')}
+                                className={`btn btn-sm ${attendance.status === 'alpha' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                                onClick={() => handleStatusChange(attendance.student_class_id, 'alpha')}
                               >
                                 Alpha
                               </button>

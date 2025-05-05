@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { parentsAPI } from '../utils/api';
+import { parentsAPI, semesterAPI } from '../utils/api';
+import { useSemester } from '../contexts/SemesterContext';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 
@@ -9,6 +10,10 @@ const ParentAttendance = () => {
   const [error, setError] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [filterDate, setFilterDate] = useState('');
+  const [currentView, setCurrentView] = useState('semesters'); // 'semesters' or 'attendance'
+  const { activeSemester } = useSemester();
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState(null);
 
   // Status color mapping
   const statusColors = {
@@ -16,6 +21,37 @@ const ParentAttendance = () => {
     'alpha': { bg: 'bg-danger', text: 'Alpha' },
     'izin': { bg: 'bg-warning', text: 'Izin' },
     'sakit': { bg: 'bg-info', text: 'Sakit' }
+  };
+
+  useEffect(() => {
+    fetchSemesters();
+  }, []);
+
+  const fetchSemesters = async () => {
+    try {
+      setLoading(true);
+      const response = await semesterAPI.getAll();
+      setSemesters(Array.isArray(response) ? response : []);
+      
+      // Mark the active semester but don't automatically navigate to it
+      if (activeSemester) {
+        const activeSem = response.find(sem => sem.id === activeSemester.id);
+        if (activeSem) {
+          activeSem.is_active = true;
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching semesters:', err);
+      toast.error('Gagal mengambil data semester');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectSemester = (semester) => {
+    setSelectedSemester(semester);
+    setCurrentView('attendance');
+    fetchAttendanceData(semester.id);
   };
 
   // Month options for filter
@@ -34,12 +70,12 @@ const ParentAttendance = () => {
     return months;
   };
 
-  const fetchAttendanceData = async () => {
+  const fetchAttendanceData = async (semesterId) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await parentsAPI.getAttendance({ month: selectedMonth });
+      const response = await parentsAPI.getAttendance(semesterId);
 
       // Validate response
       if (!response) {
@@ -80,12 +116,6 @@ const ParentAttendance = () => {
     }
   };
 
-  useEffect(() => {
-    if (selectedMonth) {
-      fetchAttendanceData();
-    }
-  }, [selectedMonth]);
-
   // Format date for display
   const formatDate = (dateString) => {
     try {
@@ -110,7 +140,15 @@ const ParentAttendance = () => {
   };
 
   const handleRefresh = () => {
-    fetchAttendanceData();
+    if (selectedSemester) {
+      fetchAttendanceData(selectedSemester.id);
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentView('semesters');
+    setSelectedSemester(null);
+    setAttendanceData([]);
   };
 
   // Attendance statistics
@@ -126,8 +164,103 @@ const ParentAttendance = () => {
     ? Math.round((attendanceStats.hadir / attendanceStats.total) * 100)
     : 0;
 
+  // Render semester selection view
+  const renderSemesterList = () => {
+    return (
+      <>
+        <div className="row mb-4">
+          <div className="col">
+            <h2>Pilih Semester</h2>
+          </div>
+          <div className="col-auto">
+            <button
+              className="btn btn-outline-primary"
+              onClick={fetchSemesters}
+              disabled={loading}
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Semesters List */}
+        {loading ? (
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : semesters.length > 0 ? (
+          <div className="row">
+            {semesters.map((semester) => (
+              <div key={`semester-${semester.id}`} className="col-md-6 col-xl-4 mb-4">
+                <div className="card h-100 shadow-sm">
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title">
+                      {semester.name}
+                      {semester.is_active && (
+                        <span className="badge bg-success ms-2">Aktif</span>
+                      )}
+                    </h5>
+                    <p className="card-text text-muted mb-3">
+                      {semester.description || 'Semester ' + semester.number}
+                    </p>
+                    <div className="mt-auto text-end">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleSelectSemester(semester)}
+                      >
+                        Pilih Semester
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="alert alert-info">
+            Belum ada semester yang tersedia
+          </div>
+        )}
+      </>
+    );
+  };
+
+  if (loading && currentView === 'semesters') {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Main component view based on the current state
+  if (currentView === 'semesters') {
+    return (
+      <div className="container py-4">
+        {renderSemesterList()}
+      </div>
+    );
+  }
+
+  // Attendance view
   return (
     <div className="container-fluid py-4">
+      <div className="d-flex align-items-center mb-4">
+        <button
+          className="btn btn-link text-decoration-none p-0 me-3"
+          onClick={handleBack}
+          style={{ color: '#000', fontSize: '1rem' }}
+        >
+          ← Kembali ke Daftar Semester
+        </button>
+        <h2 className="mb-0">Kehadiran - {selectedSemester?.name}</h2>
+      </div>
+
       <div className="row mb-4">
         <div className="col-md-12">
           <div className="card border-0 shadow-sm">
@@ -135,21 +268,6 @@ const ParentAttendance = () => {
               <h5 className="card-title mb-4">Ringkasan Kehadiran</h5>
 
               <div className="row justify-content-between align-items-center mb-4">
-                <div className="col-md-4">
-                  <div className="form-group">
-                    <label htmlFor="monthFilter" className="form-label">Bulan</label>
-                    <select
-                      id="monthFilter"
-                      className="form-select"
-                      value={selectedMonth}
-                      onChange={handleMonthChange}
-                    >
-                      {getMonthOptions().map(month => (
-                        <option key={month.value} value={month.value}>{month.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
                 <div className="col-md-4">
                   <div className="form-group">
                     <label htmlFor="dateFilter" className="form-label">Filter Tanggal</label>
@@ -249,16 +367,16 @@ const ParentAttendance = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAttendance.map((attendance, index) => (
-                        <tr key={attendance.id || index}>
+                      {filteredAttendance.map((item, index) => (
+                        <tr key={item.id}>
                           <td>{index + 1}</td>
-                          <td>{formatDate(attendance.date)}</td>
+                          <td>{formatDate(item.date)}</td>
                           <td>
-                            <span className={`badge ${statusColors[attendance.status]?.bg || 'bg-secondary'}`}>
-                              {statusColors[attendance.status]?.text || attendance.status || 'Unknown'}
+                            <span className={`badge ${statusColors[item.status]?.bg || 'bg-secondary'}`}>
+                              {statusColors[item.status]?.text || item.status}
                             </span>
                           </td>
-                          <td>{attendance.note || '-'}</td>
+                          <td>{item.note}</td>
                         </tr>
                       ))}
                     </tbody>

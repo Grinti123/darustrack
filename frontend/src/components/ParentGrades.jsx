@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { parentsAPI } from '../utils/api';
+import { parentsAPI, semesterAPI } from '../utils/api';
+import { useSemester } from '../contexts/SemesterContext';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import id from 'date-fns/locale/id';
@@ -13,15 +14,46 @@ const ParentGrades = () => {
   const [error, setError] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [currentView, setCurrentView] = useState('semesters'); // 'semesters', 'subjects', 'categories', 'details'
+  const { activeSemester } = useSemester();
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState(null);
 
   useEffect(() => {
-    fetchGradesData();
+    fetchSemesters();
   }, []);
 
-  const fetchGradesData = async () => {
+  const fetchSemesters = async () => {
     try {
       setLoading(true);
-      const data = await parentsAPI.getGrades();
+      const response = await semesterAPI.getAll();
+      setSemesters(Array.isArray(response) ? response : []);
+      
+      // Mark the active semester but don't automatically navigate to it
+      if (activeSemester) {
+        const activeSem = response.find(sem => sem.id === activeSemester.id);
+        if (activeSem) {
+          activeSem.is_active = true;
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching semesters:', err);
+      toast.error('Gagal mengambil data semester');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectSemester = (semester) => {
+    setSelectedSemester(semester);
+    setCurrentView('subjects');
+    fetchGradesData(semester.id);
+  };
+
+  const fetchGradesData = async (semesterId) => {
+    try {
+      setLoading(true);
+      const data = await parentsAPI.getGrades(semesterId);
       console.log('Parent grades data:', data);
 
       // Add detailed structure logging
@@ -81,17 +113,14 @@ const ParentGrades = () => {
   const fetchCategories = async (subjectId) => {
     try {
       setLoading(true);
-      const data = await parentsAPI.getSubjectCategories(subjectId);
-      console.log('Categories data:', data);
+      
+      // Use the correct endpoint to fetch categories for a specific subject
+      const categories = await parentsAPI.getSubjectCategories(selectedSemester.id, subjectId);
+      console.log('Categories for subject:', categories);
 
-      // Log data structure for debugging
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('First category structure:', JSON.stringify(data[0], null, 2));
-      }
-
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(categories) ? categories : [];
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error(`Error fetching categories for subject ${subjectId}:`, err);
       toast.error('Gagal memuat kategori nilai');
       return [];
     } finally {
@@ -123,6 +152,7 @@ const ParentGrades = () => {
       });
 
       setSelectedCategory(null);
+      setCurrentView('categories');
     } catch (err) {
       console.error('Error in handleSelectSubject:', err);
       toast.error('Gagal memuat data penilaian');
@@ -135,17 +165,27 @@ const ParentGrades = () => {
   const fetchCategoryDetails = async (categoryId) => {
     try {
       setLoading(true);
-      const data = await parentsAPI.getCategoryDetails(categoryId);
-      console.log('Category details data:', data);
+      
+      console.log(`Fetching details for category ${categoryId}`);
+      
+      // Use the direct endpoint to get category scores
+      const data = await parentsAPI.getCategoryScores(categoryId);
+      console.log('Category scores data:', data);
 
-      // Log data structure for debugging
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('First detail structure:', JSON.stringify(data[0], null, 2));
+      // If the API doesn't return the expected format, try to extract what we need
+      if (!Array.isArray(data)) {
+        console.log('API returned non-array data for category details, trying to extract details');
+        // Check if the response has a 'details' property that contains the array
+        if (data && Array.isArray(data.details)) {
+          return data.details;
+        }
+        // If not, try other possible structures
+        return [];
       }
 
-      return Array.isArray(data) ? data : [];
+      return data;
     } catch (err) {
-      console.error('Error fetching category details:', err);
+      console.error(`Error fetching category details for category ${categoryId}:`, err);
       toast.error('Gagal memuat detail kategori nilai');
       return [];
     } finally {
@@ -157,22 +197,44 @@ const ParentGrades = () => {
   const handleSelectCategory = async (category) => {
     try {
       setLoading(true);
+      console.log('Selected category:', category);
+      
       const details = await fetchCategoryDetails(category.id);
-      console.log('Category details with scores:', details);
+      console.log('Raw category details with scores:', details);
 
-      // Update the category with details that include student scores
+      // Safer data extraction with more detailed logging
+      let processedDetails = [];
+      
+      if (Array.isArray(details)) {
+        processedDetails = details.map(detail => {
+          // Log each detail to see exactly what we're working with
+          console.log('Processing detail:', detail);
+          
+          // Extract data with fallbacks for each property
+          const detailObj = {
+            id: detail.id || detail.detail_id || `detail-${Math.random()}`,
+            name: detail.title || detail.name || detail.detail_name || detail.assessment_name || 'Unnamed Detail',
+            date: detail.date || detail.detail_date || detail.assessment_date,
+            score: detail.score !== undefined ? detail.score : null,
+            studentName: detail.student_name || detail.studentName || '',
+            studentId: detail.student_id || detail.studentId || '',
+            day: detail.day || ''
+          };
+          
+          console.log('Processed detail:', detailObj);
+          return detailObj;
+        });
+      } else {
+        console.warn('Details is not an array:', details);
+      }
+
+      // Update the category with processed details
       setSelectedCategory({
         ...category,
-        details: Array.isArray(details) ? details.map(detail => ({
-          id: detail.id || detail.detail_id,
-          name: detail.title || detail.name || detail.detail_name || detail.assessment_name || 'Unnamed Detail',
-          date: detail.date || detail.detail_date || detail.assessment_date,
-          score: detail.score,
-          studentName: detail.student_name,
-          studentId: detail.student_id,
-          day: detail.day
-        })) : []
+        details: processedDetails
       });
+      
+      setCurrentView('details');
     } catch (err) {
       console.error('Error in handleSelectCategory:', err);
       toast.error('Gagal memuat detail penilaian');
@@ -181,12 +243,18 @@ const ParentGrades = () => {
     }
   };
 
-  // Handle back button clicks
+  // Handle back button clicks with updated navigation flow
   const handleBack = () => {
-    if (selectedCategory) {
+    if (currentView === 'details') {
       setSelectedCategory(null);
-    } else if (selectedSubject) {
+      setCurrentView('categories');
+    } else if (currentView === 'categories') {
       setSelectedSubject(null);
+      setCurrentView('subjects');
+    } else if (currentView === 'subjects') {
+      setSelectedSemester(null);
+      setGradesData([]);
+      setCurrentView('semesters');
     }
   };
 
@@ -211,7 +279,71 @@ const ParentGrades = () => {
     return { status: 'Perlu Perbaikan', color: 'text-danger' };
   };
 
-  if (loading) {
+  // Render semester selection view
+  const renderSemesterList = () => {
+    return (
+      <>
+        <div className="row mb-4">
+          <div className="col">
+            <h2>Pilih Semester</h2>
+          </div>
+          <div className="col-auto">
+            <button
+              className="btn btn-outline-primary"
+              onClick={fetchSemesters}
+              disabled={loading}
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Semesters List */}
+        {loading ? (
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : semesters.length > 0 ? (
+          <div className="row">
+            {semesters.map((semester) => (
+              <div key={`semester-${semester.id}`} className="col-md-6 col-xl-4 mb-4">
+                <div className="card h-100 shadow-sm">
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title">
+                      {semester.name}
+                      {semester.is_active && (
+                        <span className="badge bg-success ms-2">Aktif</span>
+                      )}
+                    </h5>
+                    <p className="card-text text-muted mb-3">
+                      {semester.description || 'Semester ' + semester.number}
+                    </p>
+                    <div className="mt-auto text-end">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleSelectSemester(semester)}
+                      >
+                        Pilih Semester
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="alert alert-info">
+            Belum ada semester yang tersedia
+          </div>
+        )}
+      </>
+    );
+  };
+
+  if (loading && currentView === 'semesters') {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
         <div className="spinner-border text-primary" role="status">
@@ -238,222 +370,216 @@ const ParentGrades = () => {
     );
   }
 
-  if (!gradesData || gradesData.length === 0) {
-    return (
-      <div className="alert alert-info" role="alert">
-        <i className="bi bi-info-circle me-2"></i>
-        Belum ada data nilai yang tersedia.
-        {DEBUG_MODE && (
-          <div className="mt-3">
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => fetchGradesData()}
-            >
-              Refresh Data
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Detail view for a category
-  if (selectedCategory) {
-    // No need to group since we're showing scores for one student
-    const sortedDetails = [...selectedCategory.details].sort((a, b) => {
-      // Sort by date (newest first)
-      return new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01');
-    });
-
-    return (
-      <div className="container-fluid py-4">
-        <div className="d-flex align-items-center mb-4">
-          <button
-            className="btn btn-link text-decoration-none p-0 me-3"
-            onClick={handleBack}
-            style={{ color: '#000', fontSize: '1rem' }}
-          >
-            ← {selectedSubject?.name || 'Back'}
-          </button>
-          <h2 className="mb-0">{selectedCategory?.name || 'Category Details'}</h2>
+  // Main component view based on the current state
+  switch (currentView) {
+    case 'semesters':
+      return (
+        <div className="container py-4">
+          {renderSemesterList()}
         </div>
-
-        <h4 className="mt-2 mb-4">Nilai Penilaian</h4>
-
-        {loading ? (
-          <div className="d-flex justify-content-center align-items-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : sortedDetails.length > 0 ? (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th scope="col" className="ps-4">Penilaian</th>
-                      <th scope="col">Hari</th>
-                      <th scope="col">Tanggal</th>
-                      <th scope="col" className="text-center" style={{ width: '120px' }}>Nilai</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedDetails.map((detail, index) => {
-                      const { status, color } = getScoreStatusAndColor(detail.score);
-                      return (
-                        <tr key={detail.id || index}>
-                          <td className="ps-4 fw-medium">{detail.name || 'Undefined'}</td>
-                          <td>{detail.day || '-'}</td>
-                          <td>{formatDate(detail.date)}</td>
-                          <td className="text-center">
-                            {detail.score !== null && detail.score !== undefined ? (
-                              <span
-                                className="badge bg-primary"
-                                style={{
-                                  width: '50px',
-                                  padding: '6px 0',
-                                  borderRadius: '4px',
-                                  fontSize: '0.9rem'
-                                }}
-                              >
-                                {detail.score}
-                              </span>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="alert alert-info">
-            Belum ada detail penilaian untuk kategori ini.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Subject detail view
-  if (selectedSubject) {
-    const categories = getCategories();
-
-    return (
-      <div className="container-fluid py-4">
-        <div className="d-flex align-items-center mb-4">
-          <button
-            className="btn btn-link text-decoration-none p-0 me-3"
-            onClick={handleBack}
-            style={{ color: '#000', fontSize: '1rem' }}
-          >
-            ← Penilaian Akademik
-          </button>
-          <h2 className="mb-0">{selectedSubject?.name || 'Subject Details'}</h2>
-        </div>
-
-        {loading ? (
-          <div className="d-flex justify-content-center align-items-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : categories.length > 0 ? (
-          categories.map((category) => (
-            <div
-              key={category.id || `category-${Math.random()}`}
-              className="card mb-3 border rounded-3"
-            >
-              <div className="card-body d-flex justify-content-between align-items-center p-3">
-                <div>
-                  <h5 className="mb-0" style={{ color: '#0d6efd' }}>{category.name || 'Undefined Category'}</h5>
-                </div>
-                <button
-                  className="btn btn-light"
-                  style={{
-                    backgroundColor: '#f8f9fa',
-                    color: '#0d6efd',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '6px 16px',
-                    fontSize: '0.9rem',
-                    fontWeight: '500'
-                  }}
-                  onClick={() => handleSelectCategory(category)}
-                >
-                  Pilih
-                </button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="alert alert-info">
-            Belum ada kategori penilaian untuk mata pelajaran ini.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Main subjects view
-  const subjects = getSubjects();
-
-  return (
-    <div className="container-fluid py-4">
-      <h1 className="mb-4">Penilaian Akademik</h1>
-
-      {DEBUG_MODE && (
-        <div className="card mb-4 border-warning">
-          <div className="card-header bg-warning text-white">
-            Debug Mode - Raw API Response
-          </div>
-          <div className="card-body">
-            <pre className="m-0" style={{ whiteSpace: 'pre-wrap', fontSize: '0.8rem' }}>
-              {JSON.stringify(gradesData, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
-
-      {subjects.length === 0 ? (
-        <div className="alert alert-info">
-          <i className="bi bi-info-circle me-2"></i>
-          Belum ada data nilai tersedia. Data Anda mungkin sedang dimuat atau belum tersedia.
-        </div>
-      ) : (
-        subjects.map((subject) => (
-          <div key={subject.id} className="card mb-3 border rounded-3">
-            <div className="card-body d-flex justify-content-between align-items-center p-3">
-              <div>
-                <h5 className="mb-0" style={{ color: '#0d6efd' }}>{subject.name}</h5>
-              </div>
+      );
+    case 'subjects':
+      if (!gradesData || gradesData.length === 0) {
+        return (
+          <div className="container py-4">
+            <div className="d-flex align-items-center mb-4">
               <button
-                className="btn btn-light"
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  color: '#0d6efd',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '6px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: '500'
-                }}
-                onClick={() => handleSelectSubject(subject)}
+                className="btn btn-link text-decoration-none p-0 me-3"
+                onClick={handleBack}
+                style={{ color: '#000', fontSize: '1rem' }}
               >
-                Pilih
+                ← Kembali ke Daftar Semester
               </button>
+              <h2 className="mb-0">Nilai Akademik - {selectedSemester?.name}</h2>
+            </div>
+            <div className="alert alert-info" role="alert">
+              <i className="bi bi-info-circle me-2"></i>
+              Belum ada data nilai yang tersedia.
             </div>
           </div>
-        ))
-      )}
-    </div>
-  );
+        );
+      }
+
+      return (
+        <div className="container py-4">
+          <div className="d-flex align-items-center mb-4">
+            <button
+              className="btn btn-link text-decoration-none p-0 me-3"
+              onClick={handleBack}
+              style={{ color: '#000', fontSize: '1rem' }}
+            >
+              ← Kembali ke Daftar Semester
+            </button>
+            <h2 className="mb-0">Nilai Akademik - {selectedSemester?.name}</h2>
+          </div>
+
+          {loading ? (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="row">
+              {getSubjects().map((subject) => (
+                <div key={subject.id} className="col-md-6 col-xl-4 mb-4">
+                  <div className="card h-100 shadow-sm">
+                    <div className="card-body d-flex flex-column">
+                      <h5 className="card-title">{subject.name}</h5>
+                      <div className="mt-auto text-end">
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleSelectSubject(subject)}
+                        >
+                          Lihat Kategori
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+
+    case 'categories':
+      // Subject detail view with categories
+      if (selectedSubject) {
+        const categories = getCategories();
+
+        return (
+          <div className="container-fluid py-4">
+            <div className="d-flex align-items-center mb-4">
+              <button
+                className="btn btn-link text-decoration-none p-0 me-3"
+                onClick={handleBack}
+                style={{ color: '#000', fontSize: '1rem' }}
+              >
+                ← Kembali ke Mata Pelajaran
+              </button>
+              <h2 className="mb-0">{selectedSubject?.name || 'Subject Details'}</h2>
+            </div>
+
+            {loading ? (
+              <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : categories.length > 0 ? (
+              categories.map((category) => (
+                <div
+                  key={category.id || `category-${Math.random()}`}
+                  className="card mb-3 border rounded-3"
+                >
+                  <div className="card-body d-flex justify-content-between align-items-center p-3">
+                    <div>
+                      <h5 className="mb-1">{category.name}</h5>
+                      <div className="small text-muted">
+                        {category.details?.length || 0} penilaian
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleSelectCategory(category)}
+                    >
+                      Lihat Detail
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="alert alert-info">
+                Belum ada kategori penilaian untuk mata pelajaran ini.
+              </div>
+            )}
+          </div>
+        );
+      }
+      return null;
+
+    case 'details':
+      // Category detail list view
+      if (selectedCategory) {
+        const categoryDetails = selectedCategory.details || [];
+
+        return (
+          <div className="container-fluid py-4">
+            <div className="d-flex align-items-center mb-4">
+              <button
+                className="btn btn-link text-decoration-none p-0 me-3"
+                onClick={handleBack}
+                style={{ color: '#000', fontSize: '1rem' }}
+              >
+                ← Kembali ke Kategori
+              </button>
+              <h2 className="mb-0">Penilaian Akademik</h2>
+            </div>
+
+            <div className="card">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">{selectedSubject?.name} - {selectedCategory.name}</h5>
+              </div>
+              <div className="card-body p-0">
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : categoryDetails.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-hover mb-0">
+                      <thead className="bg-light">
+                        <tr>
+                          <th scope="col" style={{ width: '50px' }}>No</th>
+                          <th scope="col">Hari/Tanggal Quiz</th>
+                          <th scope="col">Keterangan</th>
+                          <th scope="col" className="text-center" style={{ width: '120px' }}>Penilaian</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {categoryDetails.map((detail, index) => (
+                          <tr key={detail.id || `detail-${index}`}>
+                            <td>{index + 1}</td>
+                            <td>{formatDate(detail.date)}</td>
+                            <td>{detail.name}</td>
+                            <td className="text-center">
+                              {detail.score !== null && detail.score !== undefined ? (
+                                <span
+                                  className="badge bg-primary py-2 px-3"
+                                  style={{
+                                    borderRadius: '4px',
+                                    fontSize: '1rem'
+                                  }}
+                                >
+                                  {detail.score}
+                                </span>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="alert alert-info m-3">
+                    Belum ada detail penilaian untuk kategori ini.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+      return null;
+      
+    default:
+      return null;
+  }
 };
 
 export default ParentGrades;

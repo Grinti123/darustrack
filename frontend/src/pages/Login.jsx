@@ -202,7 +202,7 @@ function Login() {
                         </div>
 
                         <div className="mb-4 text-end">
-                          <a href="#" className="text-decoration-none small text-primary fw-semibold">
+                          <a href="/forgot-password" className="text-decoration-none small text-primary fw-semibold">
                             Forgot My Password?
                           </a>
                         </div>

@@ -207,6 +207,34 @@ export const authAPI = {
       body: JSON.stringify(userData)
     }).then(handleResponse),
 
+  requestPasswordReset: (email) => {
+    console.log(`[API] Sending password reset request for email: ${email}`);
+    return fetch(`${API_BASE_URL}/auth/request-reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+    .then(response => {
+      console.log(`[API] Password reset request response status: ${response.status}`);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log('[API] Password reset request successful:', data);
+      return data;
+    })
+    .catch(error => {
+      console.error('[API] Password reset request failed:', error);
+      throw error;
+    });
+  },
+
+  resetPassword: (token, newPassword) =>
+    fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password: newPassword })
+    }).then(handleResponse),
+
   getProfile: () =>
     fetch(`${API_BASE_URL}/auth/profile`, {
       ...getCommonOptions(),
@@ -338,6 +366,22 @@ export const teachersAPI = {
       console.error(`[API] Error fetching attendance for date ${date}:`, error);
       throw error;
     }),
+    
+  getAllAttendances: (date) =>
+    fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'include',
+      headers: {
+        ...getHeaders(),
+        'Accept': 'application/json'
+      }
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error fetching all attendances for date ${date}:`, error);
+      throw error;
+    }),
 
   saveAttendance: (date) =>
     fetch(`${API_BASE_URL}/teachers/attendances`, {
@@ -359,7 +403,7 @@ export const teachersAPI = {
     }),
 
   updateAttendance: (date, attendances) =>
-    fetch(`${API_BASE_URL}/teachers/attendances/${date}`, {
+    fetch(`${API_BASE_URL}/teachers/attendances?date=${date}`, {
       method: 'PUT',
       mode: 'cors',
       credentials: 'include',
@@ -367,9 +411,27 @@ export const teachersAPI = {
         ...getHeaders(),
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ attendances })
+      body: JSON.stringify({ attendanceUpdates: attendances })
     })
-    .then(handleResponse)
+    .then(async response => {
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Gagal memperbarui kehadiran';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+          console.error(`[API] Error response from updateAttendance:`, errorData);
+        } catch (e) {
+          console.error(`[API] Failed to parse error response:`, errorText);
+        }
+        
+        throw new Error(errorMessage);
+      }
+      return handleResponse(response);
+    })
     .catch(error => {
       console.error(`[API] Error updating attendance for date ${date}:`, error);
       throw error;
@@ -383,121 +445,147 @@ export const teachersAPI = {
 
   // Schedule endpoints
   getSchedule: (day) =>
-    fetch(`${API_BASE_URL}/teachers/schedule?day=${day}`, {
+    fetch(`${API_BASE_URL}/teachers/schedules?day=${day}`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
   // Evaluation endpoints
-  getEvaluations: () =>
-    fetch(`${API_BASE_URL}/teachers/evaluations`, {
+  getEvaluations: (semesterId) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations`, {
       ...getCommonOptions(),
       headers: getHeaders()
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error fetching evaluations for semester ${semesterId}:`, error);
+      throw error;
     }),
 
-  createEvaluation: (data) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations`, {
+  createEvaluation: (semesterId, data) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations`, {
       method: 'POST',
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error creating evaluation for semester ${semesterId}:`, error);
+      throw error;
     }),
 
-  updateEvaluation: (id, data) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
+  updateEvaluation: (semesterId, id, data) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${id}`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error updating evaluation ${id} for semester ${semesterId}:`, error);
+      throw error;
     }),
 
-  deleteEvaluation: (id) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
+  deleteEvaluation: (semesterId, id) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${id}`, {
       method: 'DELETE',
       ...getCommonOptions(),
       headers: getHeaders()
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error deleting evaluation ${id} for semester ${semesterId}:`, error);
+      throw error;
     }),
 
-  getStudentEvaluations: (evaluationId) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${evaluationId}/students`, {
+  getStudentEvaluations: (semesterId, evaluationId) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${evaluationId}/students`, {
       ...getCommonOptions(),
       headers: getHeaders()
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error fetching students for evaluation ${evaluationId}, semester ${semesterId}:`, error);
+      throw error;
     }),
 
-  getStudentEvaluation: (evaluationId, studentId) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${evaluationId}/students/${studentId}`, {
+  getStudentEvaluation: (semesterId, evaluationId, studentId) => {
+    console.log(`[API] getStudentEvaluation: Fetching student ${studentId} for evaluation ${evaluationId} in semester ${semesterId}`);
+    return fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${evaluationId}/students/${studentId}`, {
       ...getCommonOptions(),
       headers: getHeaders()
     })
-    .then(response => response.json())
+    .then(response => {
+      console.log(`[API] getStudentEvaluation: Response status:`, response.status);
+      if (!response.ok) {
+        console.log(`[API] getStudentEvaluation: Error response:`, response.statusText);
+      }
+      return handleResponse(response);
+    })
     .then(data => {
-      if (data.error) throw new Error(data.error);
+      console.log(`[API] getStudentEvaluation: Student evaluation data:`, data);
       return data;
-    }),
+    })
+    .catch(error => {
+      console.error(`[API] Error fetching student ${studentId} for evaluation ${evaluationId}:`, error);
+      throw error;
+    });
+  },
 
-  updateStudentEvaluation: (evaluationId, studentId, data) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${evaluationId}/students/${studentId}`, {
+  updateStudentEvaluation: (semesterId, evaluationId, studentId, data) =>
+    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${evaluationId}/students/${studentId}`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      return data;
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error updating student ${studentId} for evaluation ${evaluationId}:`, error);
+      throw error;
     }),
 
-  getEvaluationById: (id) =>
-    fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
+  getEvaluationById: (semesterId, id) => {
+    console.log(`[API] getEvaluationById: Fetching evaluation with id ${id} for semester ${semesterId}`);
+    return fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${id}`, {
       ...getCommonOptions(),
       headers: getHeaders()
     })
-      .then(handleResponse)
-      .catch((err) => {
-        console.error('Error getting evaluation:', err);
-        throw err;
-      }),
+    .then(response => {
+      console.log(`[API] getEvaluationById: Response status for evaluation ${id}:`, response.status);
+      if (!response.ok) {
+        console.log(`[API] getEvaluationById: Error response for evaluation ${id}:`, response.statusText);
+      }
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log(`[API] getEvaluationById: Successfully processed response for evaluation ${id}`);
+      console.log(`[API] getEvaluationById: Response data type:`, typeof data);
+      console.log(`[API] getEvaluationById: Response keys:`, data ? Object.keys(data) : 'null response');
+      return data;
+    })
+    .catch(error => {
+      console.error(`[API] Error getting evaluation ${id} for semester ${semesterId}:`, error);
+      throw error;
+    });
+  },
 
   getGrades: () =>
-    fetch(`${API_BASE_URL}/teachers/grades`, {
+    fetch(`${API_BASE_URL}/teachers/grades/subjects`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
-  getCategories: (subjectId) =>
-    fetch(`${API_BASE_URL}/teachers/grades/${subjectId}/categories`, {
+  getCategories: (subjectId, semesterId) =>
+    fetch(`${API_BASE_URL}/teachers/grades/${subjectId}/${semesterId}/categories`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
-  createCategory: (subjectId, categoryData) =>
-    fetch(`${API_BASE_URL}/teachers/grades/${subjectId}/categories`, {
+  createCategory: (subjectId, semesterId, categoryData) =>
+    fetch(`${API_BASE_URL}/teachers/grades/${subjectId}/${semesterId}/categories`, {
       method: 'POST',
       ...getCommonOptions(),
       headers: getHeaders(),
@@ -531,7 +619,19 @@ export const teachersAPI = {
     fetch(`${API_BASE_URL}/teachers/grades/categories/${categoryId}/details`, {
       ...getCommonOptions(),
       headers: getHeaders()
-    }).then(handleResponse),
+    })
+    .then(response => {
+      console.log(`[API] getCategoryDetails: Response status for category ${categoryId}:`, response.status);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log(`[API] getCategoryDetails: Received data for category ${categoryId}:`, data);
+      return data;
+    })
+    .catch(error => {
+      console.error(`[API] getCategoryDetails: Error fetching details for category ${categoryId}:`, error);
+      throw error;
+    }),
 
   updateCategoryDetail: (detailId, detailData) =>
     fetch(`${API_BASE_URL}/teachers/grades/details/${detailId}`, {
@@ -549,23 +649,110 @@ export const teachersAPI = {
     }).then(handleResponse),
 
   getDetailStudents: (detailId) => {
+    console.log(`[API] getDetailStudents: Fetching students for detail ${detailId}`);
     return fetch(`${API_BASE_URL}/teachers/grades/details/${detailId}/students`, {
       ...getCommonOptions(),
       headers: getHeaders()
-    }).then(handleResponse);
+    })
+    .then(response => {
+      console.log(`[API] getDetailStudents: Response status for detail ${detailId}:`, response.status);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log(`[API] getDetailStudents: Received data for detail ${detailId}:`, data);
+      // Log structure of first item if available
+      if (Array.isArray(data) && data.length > 0) {
+        console.log(`[API] getDetailStudents: First item structure:`, {
+          keys: Object.keys(data[0]),
+          hasStudent: !!data[0].student,
+          hasStudents: !!data[0].students,
+          studentKeys: data[0].student ? Object.keys(data[0].student) : 
+                       data[0].students ? Object.keys(data[0].students) : 
+                       null
+        });
+      }
+      return data;
+    })
+    .catch(error => {
+      console.error(`[API] getDetailStudents: Error fetching students for detail ${detailId}:`, error);
+      throw error;
+    });
   },
 
   updateStudentScore: (studentGradeId, data) => {
+    console.log(`[API] updateStudentScore: Updating score for student grade ${studentGradeId} with data:`, data);
     return fetch(`${API_BASE_URL}/teachers/grades/students/${studentGradeId}`, {
       ...getCommonOptions(),
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         ...getHeaders(),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
-    }).then(handleResponse);
-  }
+    })
+    .then(response => {
+      console.log(`[API] updateStudentScore: Response status for student grade ${studentGradeId}:`, response.status);
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log(`[API] updateStudentScore: Response data:`, data);
+      return data;
+    })
+    .catch(error => {
+      console.error(`[API] updateStudentScore: Error updating score for student grade ${studentGradeId}:`, error);
+      throw error;
+    });
+  },
+
+  // Additional direct evaluation endpoint
+  getEvaluation: (id) =>
+    fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error getting evaluation with direct path ${id}:`, error);
+      throw error;
+    }),
+
+  // Direct student evaluation update endpoint
+  updateStudentEvaluationDirect: (studentEvaluationId, data) =>
+    fetch(`${API_BASE_URL}/teachers/student-evaluations/${studentEvaluationId}`, {
+      method: 'PUT',
+      ...getCommonOptions(),
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error updating student evaluation directly ${studentEvaluationId}:`, error);
+      throw error;
+    }),
+
+  // Get student evaluation directly
+  getStudentEvaluationDirect: (studentEvaluationId) =>
+    fetch(`${API_BASE_URL}/teachers/student-evaluations/${studentEvaluationId}`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error getting student evaluation directly ${studentEvaluationId}:`, error);
+      throw error;
+    }),
+
+  // Get evaluation via detail endpoint
+  getEvaluationDetail: (id) =>
+    fetch(`${API_BASE_URL}/teachers/evaluations/detail/${id}`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error getting evaluation detail with id ${id}:`, error);
+      throw error;
+    }),
 };
 
 // Parents API
@@ -603,7 +790,15 @@ export const parentsAPI = {
     }).then(handleResponse),
 
   getProfile: async () => {
-    const response = await fetch(`${API_BASE_URL}/parents/profile`, {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    }).then(handleResponse);
+    return response;
+  },
+
+  getStudentData: async () => {
+    const response = await fetch(`${API_BASE_URL}/parents/student`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse);
@@ -616,10 +811,9 @@ export const parentsAPI = {
       headers: getHeaders()
     }).then(handleResponse),
 
-  getAttendance: async (params) => {
+  getAttendance: async (semesterId) => {
     try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/parents/attendance${queryString ? `?${queryString}` : ''}`, {
+      const response = await fetch(`${API_BASE_URL}/parents/attendances/${semesterId}`, {
         ...getCommonOptions(),
         headers: getHeaders()
       });
@@ -636,22 +830,34 @@ export const parentsAPI = {
     }
   },
 
-  getGrades: async () => {
-    const response = await fetch(`${API_BASE_URL}/parents/grades`, {
+  getGrades: async (semesterId) => {
+    const response = await fetch(`${API_BASE_URL}/parents/grades/${semesterId}/subjects`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse);
     return response;
   },
 
-  getSubjectCategories: (subjectId) =>
-    fetch(`${API_BASE_URL}/parents/grades/${subjectId}`, {
+  getSubjects: (semesterId) =>
+    fetch(`${API_BASE_URL}/parents/grades/${semesterId}/subjects`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
 
-  getCategoryDetails: (categoryId) =>
-    fetch(`${API_BASE_URL}/parents/grades/category/${categoryId}/details`, {
+  getSubjectCategories: (semesterId, subjectId) =>
+    fetch(`${API_BASE_URL}/parents/grades/${semesterId}/${subjectId}/categories`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getCategoryScores: (categoryId) =>
+    fetch(`${API_BASE_URL}/parents/grades/categories/${categoryId}/details`, {
+      ...getCommonOptions(),
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getCategoryDetails: (semesterId, subjectId, categoryId) =>
+    fetch(`${API_BASE_URL}/parents/grades/${semesterId}/subjects/${subjectId}/categories/${categoryId}/details`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse),
@@ -674,16 +880,48 @@ export const parentsAPI = {
     }
   },
 
-  getEvaluations: async () => {
-    const response = await fetch(`${API_BASE_URL}/parents/evaluations`, {
+  getEvaluations: async (semesterId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/parents/evaluations/${semesterId}`, {
       ...getCommonOptions(),
       headers: getHeaders()
-    }).then(handleResponse);
-    return response;
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching evaluations:', error);
+      throw error;
+    }
   },
 
-  getEvaluationDetails: async (evaluationId) => {
-    const response = await fetch(`${API_BASE_URL}/parents/evaluations/${evaluationId}`, {
+  getEvaluationTitles: async (semesterId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/parents/evaluations/titles/${semesterId}`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching evaluation titles:', error);
+      throw error;
+    }
+  },
+
+  getEvaluationDetail: async (semesterId, evaluationId) => {
+    try {
+      console.log(`Fetching evaluation detail for semester ${semesterId}, evaluation ${evaluationId}`);
+      const response = await fetch(`${API_BASE_URL}/parents/evaluations/${semesterId}/${evaluationId}`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching evaluation detail:', error);
+      throw error;
+    }
+  },
+
+  getEvaluationDetails: async (semesterId, evaluationId) => {
+    const response = await fetch(`${API_BASE_URL}/parents/semesters/${semesterId}/evaluations/${evaluationId}`, {
       ...getCommonOptions(),
       headers: getHeaders()
     }).then(handleResponse);
@@ -693,6 +931,176 @@ export const parentsAPI = {
 
 // Students API
 export const studentsAPI = {
+  getAll: async () => {
+    console.log('[API] studentsAPI.getAll: Fetching all students');
+    try {
+      const url = `${API_BASE_URL}/students`;
+      const headers = getHeaders();
+      console.log(`[API] studentsAPI.getAll: Request URL: ${url}`);
+      console.log(`[API] studentsAPI.getAll: Request headers:`, headers);
+      
+      const response = await fetch(url, {
+        ...getCommonOptions(),
+        headers: headers
+      });
+      
+      console.log(`[API] studentsAPI.getAll: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] studentsAPI.getAll: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] studentsAPI.getAll: Received data:', data);
+      console.log('[API] studentsAPI.getAll: Data structure:', {
+        isArray: Array.isArray(data),
+        length: Array.isArray(data) ? data.length : 'not an array',
+        sampleItem: Array.isArray(data) && data.length > 0 ? data[0] : 'no items',
+        keys: Array.isArray(data) && data.length > 0 ? Object.keys(data[0]) : 'no keys',
+        sampleFields: Array.isArray(data) && data.length > 0 ? {
+          id: data[0].id,
+          name: data[0].name,
+          nisn: data[0].nisn,
+          birth_date: data[0].birth_date,
+          parent_id: data[0].parent_id
+        } : 'no sample fields'
+      });
+      return data;
+    } catch (error) {
+      console.error('[API] studentsAPI.getAll: Exception:', error);
+      throw error;
+    }
+  },
+  
+  getById: async (id) => {
+    console.log(`[API] studentsAPI.getById: Fetching student with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] studentsAPI.getById: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] studentsAPI.getById: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] studentsAPI.getById: Received data:', data);
+      return data;
+    } catch (error) {
+      console.error(`[API] studentsAPI.getById: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  create: async (studentData) => {
+    console.log('[API] studentsAPI.create: Creating new student with data:', studentData);
+    try {
+      const url = `${API_BASE_URL}/students`;
+      const headers = getHeaders();
+      const requestBody = JSON.stringify(studentData);
+      
+      console.log(`[API] studentsAPI.create: Request URL: ${url}`);
+      console.log(`[API] studentsAPI.create: Request method: POST`);
+      console.log(`[API] studentsAPI.create: Request headers:`, headers);
+      console.log(`[API] studentsAPI.create: Request body:`, requestBody);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: headers,
+        body: requestBody
+      });
+      
+      console.log(`[API] studentsAPI.create: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] studentsAPI.create: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] studentsAPI.create: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] studentsAPI.create: Created successfully, received data:', data);
+      console.log('[API] studentsAPI.create: Created student with ID:', data.id);
+      return data;
+    } catch (error) {
+      console.error('[API] studentsAPI.create: Exception:', error);
+      throw error;
+    }
+  },
+  
+  update: async (id, studentData) => {
+    console.log(`[API] studentsAPI.update: Updating student with id: ${id}, data:`, studentData);
+    try {
+      const url = `${API_BASE_URL}/students/${id}`;
+      const headers = getHeaders();
+      const requestBody = JSON.stringify(studentData);
+      
+      console.log(`[API] studentsAPI.update: Request URL: ${url}`);
+      console.log(`[API] studentsAPI.update: Request method: PUT`);
+      console.log(`[API] studentsAPI.update: Request headers:`, headers);
+      console.log(`[API] studentsAPI.update: Request body:`, requestBody);
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: headers,
+        body: requestBody
+      });
+      
+      console.log(`[API] studentsAPI.update: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] studentsAPI.update: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] studentsAPI.update: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] studentsAPI.update: Updated successfully, received data:', data);
+      console.log('[API] studentsAPI.update: Updated student field changes:', 
+        Object.keys(studentData).map(key => ({
+          field: key,
+          oldValue: 'Not available in response',
+          newValue: studentData[key]
+        }))
+      );
+      return data;
+    } catch (error) {
+      console.error(`[API] studentsAPI.update: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  delete: async (id) => {
+    console.log(`[API] studentsAPI.delete: Deleting student with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+        method: 'DELETE',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] studentsAPI.delete: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] studentsAPI.delete: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] studentsAPI.delete: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] studentsAPI.delete: Deleted successfully');
+      return data;
+    } catch (error) {
+      console.error(`[API] studentsAPI.delete: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+
   getSchedule: (day) =>
     fetch(`${API_BASE_URL}/students/schedule?day=${day}`, {
       ...getCommonOptions(),
@@ -951,37 +1359,478 @@ export const subjectsAPI = {
   }
 };
 
+// Semester API
+export const semesterAPI = {
+  getAll: async () => {
+    console.log('[API] semesterAPI.getAll: Fetching all semesters');
+    try {
+      const response = await fetch(`${API_BASE_URL}/semesters`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] semesterAPI.getAll: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] semesterAPI.getAll: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] semesterAPI.getAll: Received data:', data);
+      return data;
+    } catch (error) {
+      console.error('[API] semesterAPI.getAll: Exception:', error);
+      throw error;
+    }
+  },
+  
+  getById: async (id) => {
+    console.log(`[API] semesterAPI.getById: Fetching semester with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/semester/${id}`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] semesterAPI.getById: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] semesterAPI.getById: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] semesterAPI.getById: Received data for id ${id}:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] semesterAPI.getById: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  create: async (semesterData) => {
+    console.log('[API] semesterAPI.create: Creating new semester with data:', semesterData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/semester`, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(semesterData)
+      });
+      
+      console.log(`[API] semesterAPI.create: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] semesterAPI.create: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] semesterAPI.create: Created successfully, received data:', data);
+      return data;
+    } catch (error) {
+      console.error('[API] semesterAPI.create: Exception:', error);
+      throw error;
+    }
+  },
+  
+  update: async (id, semesterData) => {
+    console.log(`[API] semesterAPI.update: Updating semester with id: ${id}, data:`, semesterData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/semester/${id}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(semesterData)
+      });
+      
+      console.log(`[API] semesterAPI.update: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] semesterAPI.update: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] semesterAPI.update: Updated successfully for id ${id}, received data:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] semesterAPI.update: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  delete: async (id) => {
+    console.log(`[API] semesterAPI.delete: Deleting semester with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/semester/${id}`, {
+        method: 'DELETE',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] semesterAPI.delete: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] semesterAPI.delete: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] semesterAPI.delete: Deleted successfully for id ${id}`);
+      return data;
+    } catch (error) {
+      console.error(`[API] semesterAPI.delete: Exception for id ${id}:`, error);
+      throw error;
+    }
+  }
+};
+
 // Academic Calendar API
 export const academicCalendarAPI = {
   getAll: () =>
     fetch(`${API_BASE_URL}/academic-calendar`, {
-      credentials: 'include'
+      ...getCommonOptions(),
+      headers: getHeaders()
     }).then(handleResponse),
 
   getById: (id) =>
     fetch(`${API_BASE_URL}/academic-calendar/${id}`, {
-      credentials: 'include'
+      ...getCommonOptions(),
+      headers: getHeaders()
     }).then(handleResponse),
 
   create: (eventData) =>
     fetch(`${API_BASE_URL}/academic-calendar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      ...getCommonOptions(),
+      headers: getHeaders(),
       body: JSON.stringify(eventData)
     }).then(handleResponse),
 
   update: (id, eventData) =>
     fetch(`${API_BASE_URL}/academic-calendar/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      ...getCommonOptions(),
+      headers: getHeaders(),
       body: JSON.stringify(eventData)
     }).then(handleResponse),
 
   delete: (id) =>
     fetch(`${API_BASE_URL}/academic-calendar/${id}`, {
       method: 'DELETE',
-      credentials: 'include'
+      ...getCommonOptions(),
+      headers: getHeaders()
     }).then(handleResponse)
+};
+
+// Academic Years API
+export const academicYearsAPI = {
+  getAll: async () => {
+    console.log('[API] academicYearsAPI.getAll: Fetching all academic years');
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.getAll: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.getAll: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] academicYearsAPI.getAll: Received data:', data);
+      return data;
+    } catch (error) {
+      console.error('[API] academicYearsAPI.getAll: Exception:', error);
+      throw error;
+    }
+  },
+  
+  getById: async (id) => {
+    console.log(`[API] academicYearsAPI.getById: Fetching academic year with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${id}`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.getById: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.getById: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.getById: Received data for id ${id}:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.getById: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  create: async (academicYearData) => {
+    console.log('[API] academicYearsAPI.create: Creating new academic year with data:', academicYearData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years`, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(academicYearData)
+      });
+      
+      console.log(`[API] academicYearsAPI.create: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.create: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('[API] academicYearsAPI.create: Created successfully, received data:', data);
+      return data;
+    } catch (error) {
+      console.error('[API] academicYearsAPI.create: Exception:', error);
+      throw error;
+    }
+  },
+  
+  update: async (id, academicYearData) => {
+    console.log(`[API] academicYearsAPI.update: Updating academic year with id: ${id}, data:`, academicYearData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${id}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(academicYearData)
+      });
+      
+      console.log(`[API] academicYearsAPI.update: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.update: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.update: Updated successfully for id ${id}, received data:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.update: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  delete: async (id) => {
+    console.log(`[API] academicYearsAPI.delete: Deleting academic year with id: ${id}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${id}`, {
+        method: 'DELETE',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.delete: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.delete: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.delete: Deleted successfully for id ${id}`);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.delete: Exception for id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Get classes for a specific academic year
+  getClasses: async (academicYearId) => {
+    console.log(`[API] academicYearsAPI.getClasses: Fetching classes for academic year with id: ${academicYearId}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.getClasses: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.getClasses: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.getClasses: Raw response data:`, data);
+      console.log(`[API] academicYearsAPI.getClasses: Response data structure:`, {
+        hasClassesArray: data && typeof data === 'object' && Array.isArray(data.classes),
+        topLevelKeys: data ? Object.keys(data) : [],
+        dataType: typeof data
+      });
+      
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.getClasses: Exception for academic year id ${academicYearId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Add a class to a specific academic year
+  addClass: async (academicYearId, classData) => {
+    console.log(`[API] academicYearsAPI.addClass: Adding class to academic year with id: ${academicYearId}, data:`, classData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes`, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(classData)
+      });
+      
+      console.log(`[API] academicYearsAPI.addClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.addClass: Error response: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => "Unable to get error details");
+        console.error(`[API] academicYearsAPI.addClass: Error details:`, errorText);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.addClass: Added class successfully, response data:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.addClass: Exception for academic year id ${academicYearId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get students in a class for a specific academic year
+  getStudentsInClass: async (academicYearId, classId) => {
+    console.log(`[API] academicYearsAPI.getStudentsInClass: Fetching students for class ${classId} in academic year ${academicYearId}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes/${classId}/students`, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.getStudentsInClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.getStudentsInClass: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.getStudentsInClass: Received data:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.getStudentsInClass: Exception:`, error);
+      throw error;
+    }
+  },
+  
+  // Add a student to a class in a specific academic year
+  addStudentToClass: async (academicYearId, classId, studentData) => {
+    console.log(`[API] academicYearsAPI.addStudentToClass: Adding student to class ${classId} in academic year ${academicYearId}, data:`, studentData);
+    try {
+      // Format the data according to API requirements - an array of student_ids
+      const requestData = {
+        studentIds: Array.isArray(studentData) ? studentData : [studentData]
+      };
+      
+      console.log(`[API] academicYearsAPI.addStudentToClass: Formatted request data:`, requestData);
+      
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes/${classId}/students`, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(requestData)
+      });
+      
+      console.log(`[API] academicYearsAPI.addStudentToClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.addStudentToClass: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.addStudentToClass: Added student successfully, response:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.addStudentToClass: Exception:`, error);
+      throw error;
+    }
+  },
+  
+  // Update a student in a class in a specific academic year
+  updateStudentInClass: async (academicYearId, classId, studentId, studentData) => {
+    console.log(`[API] academicYearsAPI.updateStudentInClass: Updating student ${studentId} in class ${classId} in academic year ${academicYearId}, data:`, studentData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes/${classId}/students/${studentId}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(studentData)
+      });
+      
+      console.log(`[API] academicYearsAPI.updateStudentInClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.updateStudentInClass: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.updateStudentInClass: Updated student successfully, response:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.updateStudentInClass: Exception:`, error);
+      throw error;
+    }
+  },
+  
+  // Remove a student from a class in a specific academic year
+  removeStudentFromClass: async (academicYearId, classId, studentId) => {
+    console.log(`[API] academicYearsAPI.removeStudentFromClass: Removing student ${studentId} from class ${classId} in academic year ${academicYearId}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/${academicYearId}/classes/${classId}/students/${studentId}`, {
+        method: 'DELETE',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.removeStudentFromClass: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.removeStudentFromClass: Error response: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.removeStudentFromClass: Removed student successfully`);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.removeStudentFromClass: Exception:`, error);
+      throw error;
+    }
+  },
+
+  // Set active semester for an academic year
+  setActiveSemester: async (semesterId) => {
+    console.log(`[API] academicYearsAPI.setActiveSemester: Setting semester ${semesterId} as active`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/academic-years/semester/${semesterId}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] academicYearsAPI.setActiveSemester: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] academicYearsAPI.setActiveSemester: Error response: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to set active semester');
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] academicYearsAPI.setActiveSemester: Successfully set active semester, response:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] academicYearsAPI.setActiveSemester: Exception:`, error);
+      throw error;
+    }
+  }
 };

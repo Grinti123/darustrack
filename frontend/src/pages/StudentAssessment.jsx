@@ -24,6 +24,7 @@ const StudentAssessment = () => {
   const [classes, setClasses] = useState([])
   const [selectedClass, setSelectedClass] = useState(null)
   const [classDetail, setClassDetail] = useState(null)
+  const [selectedStudent, setSelectedStudent] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [error, setError] = useState(null)
@@ -92,6 +93,19 @@ const StudentAssessment = () => {
   const handleCloseDetail = () => {
     setSelectedClass(null)
     setClassDetail(null)
+    setSelectedStudent(null)
+  }
+
+  const handleStudentSelect = (student) => {
+    // Find the student in the rankings
+    const selectedStudentData = classDetail.student_rankings.find(s => s.id === student.id);
+    if (selectedStudentData) {
+      setSelectedStudent(selectedStudentData);
+    }
+  }
+
+  const handleBackToClass = () => {
+    setSelectedStudent(null)
   }
 
   // Chart options and data for subject averages
@@ -166,14 +180,14 @@ const StudentAssessment = () => {
 
   // Prepare chart data when classDetail changes
   const getSubjectChartData = () => {
-    if (!classDetail?.subject_averages) return null
+    if (!classDetail?.average_score_per_subject) return null
 
     return {
-      labels: classDetail.subject_averages.map(subject => subject.subject_name),
+      labels: classDetail.average_score_per_subject.map(subject => subject.subject_name),
       datasets: [
         {
           label: 'Rata-rata Nilai',
-          data: classDetail.subject_averages.map(subject => subject.average_score),
+          data: classDetail.average_score_per_subject.map(subject => subject.average_score),
           backgroundColor: 'rgba(53, 162, 235, 0.5)',
           borderColor: 'rgb(53, 162, 235)',
           borderWidth: 1,
@@ -183,14 +197,14 @@ const StudentAssessment = () => {
   }
 
   const getStudentChartData = () => {
-    if (!classDetail?.student_ranks) return null
+    if (!classDetail?.student_rankings) return null
 
     return {
-      labels: classDetail.student_ranks.map(student => student.name),
+      labels: classDetail.student_rankings.map(student => student.name),
       datasets: [
         {
           label: 'Nilai Rata-rata',
-          data: classDetail.student_ranks.map(student => student.average_score),
+          data: classDetail.student_rankings.map(student => student.average_score),
           backgroundColor: 'rgba(75, 192, 192, 0.5)',
           borderColor: 'rgb(75, 192, 192)',
           borderWidth: 1,
@@ -198,6 +212,32 @@ const StudentAssessment = () => {
       ],
     }
   }
+
+  // Add styles to head
+  useEffect(() => {
+    // Add custom badge colors
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .bg-gold {
+        background-color: #FFD700 !important;
+        color: #000;
+      }
+      .bg-silver {
+        background-color: #C0C0C0 !important;
+        color: #000;
+      }
+      .bg-bronze {
+        background-color: #CD7F32 !important;
+        color: #fff;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Clean up on unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -215,6 +255,79 @@ const StudentAssessment = () => {
         {error}
       </div>
     )
+  }
+
+  // Render student detail view
+  if (selectedStudent) {
+    return (
+      <div className="container py-4">
+        <div className="card">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h3 className="mb-0">Detail Siswa: {selectedStudent.name}</h3>
+            <button
+              className="btn btn-outline-secondary"
+              onClick={handleBackToClass}
+            >
+              Kembali
+            </button>
+          </div>
+          <div className="card-body">
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <div className="card">
+                  <div className="card-body">
+                    <h4 className="card-title mb-3">Informasi Siswa</h4>
+                    <div className="mb-2">
+                      <strong>ID Siswa:</strong> {selectedStudent.id}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Nama:</strong> {selectedStudent.name}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Nilai Rata-rata:</strong> {selectedStudent.average_score ? selectedStudent.average_score.toFixed(2) : '-'}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Peringkat:</strong> {classDetail.student_rankings.findIndex(s => s.id === selectedStudent.id) + 1} dari {classDetail.total_students}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Subject Scores */}
+            <div className="row">
+              <div className="col-md-12 mb-4">
+                <div className="card">
+                  <div className="card-body">
+                    <h5 className="card-title mb-3">Nilai Per Mata Pelajaran</h5>
+                    <div className="table-responsive">
+                      <table className="table table-bordered">
+                        <thead className="table-light">
+                          <tr>
+                            <th>ID</th>
+                            <th>Mata Pelajaran</th>
+                            <th>Nilai</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedStudent.average_score_per_subject?.map((subject, index) => (
+                            <tr key={subject.subject_id}>
+                              <td>{subject.subject_id}</td>
+                              <td>{subject.subject_name}</td>
+                              <td>{subject.average_score ? subject.average_score.toFixed(2) : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -272,9 +385,9 @@ const StudentAssessment = () => {
                   <div className="col-md-6">
                     <div className="card">
                       <div className="card-body">
-                        <h4 className="card-title mb-3">Informasi Kelas {classDetail.class_name}</h4>
+                        <h4 className="card-title mb-3">Informasi Kelas {classDetail.name}</h4>
                         <div className="mb-2">
-                          <strong>ID Kelas:</strong> {classDetail.class_id}
+                          <strong>ID Kelas:</strong> {classDetail.id}
                         </div>
                         <div className="mb-2">
                           <strong>Tingkat:</strong> {classDetail.grade_level}
@@ -283,10 +396,10 @@ const StudentAssessment = () => {
                           <strong>Jumlah Siswa:</strong> {classDetail.total_students}
                         </div>
                         <div className="mb-2">
-                          <strong>Rata-rata Kelas:</strong> {classDetail.class_average}
+                          <strong>Rata-rata Kelas:</strong> {classDetail.overall_average_score ? classDetail.overall_average_score.toFixed(2) : '-'}
                         </div>
                         <div className="mb-2">
-                          <strong>Persentase Kehadiran:</strong> {classDetail.attendance_percentage}%
+                          <strong>Persentase Kehadiran:</strong> {classDetail.attendance_percentage || '-'}
                         </div>
                       </div>
                     </div>
@@ -324,28 +437,49 @@ const StudentAssessment = () => {
                   </div>
                 </div>
 
-                {/* Existing tables section */}
+                {/* Tables section */}
                 <div className="row">
-                  {/* Student Ranks Table */}
+                  {/* Student Rankings Table */}
                   <div className="col-md-6 mb-4">
                     <div className="card">
                       <div className="card-body">
                         <h5 className="card-title mb-3">Peringkat Siswa</h5>
                         <div className="table-responsive">
-                          <table className="table table-bordered">
-                            <thead>
+                          <table className="table table-bordered table-hover">
+                            <thead className="table-light">
                               <tr>
+                                <th>Peringkat</th>
                                 <th>Nama Siswa</th>
                                 <th>Rata-rata Nilai</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {classDetail.student_ranks?.map((student, index) => (
-                                <tr key={student.id}>
-                                  <td>{student.name}</td>
-                                  <td>{student.average_score}</td>
-                                </tr>
-                              ))}
+                              {classDetail.student_rankings?.map((student, index) => {
+                                // Determine badge based on ranking
+                                let rankBadge = null;
+                                if (index === 0) {
+                                  rankBadge = <span className="badge bg-gold ms-2">Terbaik</span>;
+                                } else if (index === 1) {
+                                  rankBadge = <span className="badge bg-silver ms-2">Kedua</span>;
+                                } else if (index === 2) {
+                                  rankBadge = <span className="badge bg-bronze ms-2">Ketiga</span>;
+                                }
+                                
+                                return (
+                                  <tr key={student.id}>
+                                    <td>{index + 1}</td>
+                                    <td>
+                                      {student.name}
+                                      {rankBadge}
+                                    </td>
+                                    <td>
+                                      <span className={index < 3 ? "fw-bold text-success" : ""}>
+                                        {student.average_score ? student.average_score.toFixed(2) : '-'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -359,18 +493,20 @@ const StudentAssessment = () => {
                       <div className="card-body">
                         <h5 className="card-title mb-3">Rata-rata Mata Pelajaran</h5>
                         <div className="table-responsive">
-                          <table className="table table-bordered">
-                            <thead>
+                          <table className="table table-bordered table-hover">
+                            <thead className="table-light">
                               <tr>
                                 <th>Mata Pelajaran</th>
+                                <th>Kode</th>
                                 <th>Rata-rata</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {classDetail.subject_averages?.map((subject, index) => (
+                              {classDetail.average_score_per_subject?.map((subject) => (
                                 <tr key={subject.subject_id}>
                                   <td>{subject.subject_name}</td>
-                                  <td>{subject.average_score}</td>
+                                  <td>{subject.subject_id}</td>
+                                  <td>{subject.average_score ? subject.average_score.toFixed(2) : '-'}</td>
                                 </tr>
                               ))}
                             </tbody>

@@ -768,6 +768,19 @@ export const teachersAPI = {
       console.error(`[API] Error getting evaluation detail with id ${id}:`, error);
       throw error;
     }),
+
+  // Delete evaluation directly
+  deleteEvaluationDirect: (id) =>
+    fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
+      method: 'DELETE',
+      ...getCommonOptions(),
+      headers: getHeaders()
+    })
+    .then(handleResponse)
+    .catch(error => {
+      console.error(`[API] Error deleting evaluation directly with id ${id}:`, error);
+      throw error;
+    }),
 };
 
 // Parents API
@@ -1246,35 +1259,145 @@ export const classesAPI = {
     }).then(handleResponse)
     return response
   },
+  
+  // Get class schedule for a specific day
+  getScheduleByDay: async (classId, day, academicYearId = null) => {
+    console.log(`[API] classesAPI.getScheduleByDay: Fetching schedule for class ${classId} on day ${day}${academicYearId ? `, academic year ${academicYearId}` : ''}`);
+    try {
+      // Build the query parameters
+      const queryParams = new URLSearchParams();
+      if (day) queryParams.append('day', day);
+      if (academicYearId) queryParams.append('academic_year_id', academicYearId);
+      
+      const url = `${API_BASE_URL}/classes/${classId}/schedule${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      console.log(`[API] classesAPI.getScheduleByDay: Request URL: ${url}`);
+      
+      const response = await fetch(url, {
+        ...getCommonOptions(),
+        headers: getHeaders()
+      });
+      
+      console.log(`[API] classesAPI.getScheduleByDay: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] classesAPI.getScheduleByDay: Error response: ${response.status} ${response.statusText}`);
+        
+        // Try to parse and log the detailed error
+        try {
+          const errorText = await response.text();
+          console.error(`[API] classesAPI.getScheduleByDay: Error details:`, errorText);
+          
+          // Check if it's the specific academic_year_id error
+          if (errorText.includes("Unknown column 'class.academic_year_id'")) {
+            console.warn(`[API] classesAPI.getScheduleByDay: Backend is expecting academic_year_id parameter`);
+            // Could implement retry logic here if needed
+          }
+          
+          throw new Error(`Failed to fetch schedule: ${errorText}`);
+        } catch (parseError) {
+          throw new Error(`Failed to fetch schedule: ${response.status} ${response.statusText}`);
+        }
+      }
+      
+      const data = await handleResponse(response);
+      console.log(`[API] classesAPI.getScheduleByDay: Received data for class ${classId} on day ${day}:`, data);
+      return data;
+    } catch (error) {
+      console.error(`[API] classesAPI.getScheduleByDay: Exception for class ${classId} on day ${day}:`, error);
+      throw error;
+    }
+  },
 
   // Add schedule to class
   addSchedule: async (classId, scheduleData) => {
-    const response = await fetch(`${API_BASE_URL}/classes/${classId}/schedule`, {
-      method: 'POST',
-      headers: getHeaders(),
-      credentials: 'include',
-      body: JSON.stringify(scheduleData)
-    }).then(handleResponse)
-    return response
+    console.log(`[API] classesAPI.addSchedule: Adding schedule to class ${classId}, data:`, scheduleData);
+    try {
+      const response = await fetch(`${API_BASE_URL}/classes/${classId}/schedule`, {
+        method: 'POST',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(scheduleData)
+      });
+      
+      console.log(`[API] classesAPI.addSchedule: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] classesAPI.addSchedule: Error response: ${response.status} ${response.statusText}`);
+        
+        // Parse the error response
+        const errorText = await response.text();
+        console.error(`[API] classesAPI.addSchedule: Error details:`, errorText);
+        
+        let errorMessage = 'Failed to add schedule';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData && errorData.message) {
+            errorMessage = errorData.message;
+            console.error(`[API] classesAPI.addSchedule: Parsed error message: ${errorMessage}`);
+          }
+        } catch (parseError) {
+          console.error(`[API] classesAPI.addSchedule: Failed to parse error response:`, parseError);
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return await handleResponse(response);
+    } catch (error) {
+      console.error(`[API] classesAPI.addSchedule: Exception:`, error);
+      throw error;
+    }
   },
 
   // Update schedule in class
   updateSchedule: async (classId, scheduleId, scheduleData) => {
-    // Ensure the request body follows the API specification
-    // subject_id, day, start_time, and end_time are all optional
-    const requestBody = {};
-    if (scheduleData.subject_id) requestBody.subject_id = scheduleData.subject_id;
-    if (scheduleData.day) requestBody.day = scheduleData.day;
-    if (scheduleData.start_time) requestBody.start_time = scheduleData.start_time;
-    if (scheduleData.end_time) requestBody.end_time = scheduleData.end_time;
+    console.log(`[API] classesAPI.updateSchedule: Updating schedule ${scheduleId} for class ${classId}, data:`, scheduleData);
+    try {
+      // Ensure the request body follows the API specification
+      // subject_id, day, start_time, and end_time are all optional
+      const requestBody = {};
+      if (scheduleData.subject_id) requestBody.subject_id = scheduleData.subject_id;
+      if (scheduleData.day) requestBody.day = scheduleData.day;
+      if (scheduleData.start_time) requestBody.start_time = scheduleData.start_time;
+      if (scheduleData.end_time) requestBody.end_time = scheduleData.end_time;
 
-    const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      credentials: 'include',
-      body: JSON.stringify(requestBody)
-    }).then(handleResponse)
-    return response
+      const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
+        method: 'PUT',
+        ...getCommonOptions(),
+        headers: getHeaders(),
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log(`[API] classesAPI.updateSchedule: Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[API] classesAPI.updateSchedule: Error response: ${response.status} ${response.statusText}`);
+        
+        // Parse the error response
+        const errorText = await response.text();
+        console.error(`[API] classesAPI.updateSchedule: Error details:`, errorText);
+        
+        let errorMessage = 'Failed to update schedule';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData && errorData.message) {
+            errorMessage = errorData.message;
+            console.error(`[API] classesAPI.updateSchedule: Parsed error message: ${errorMessage}`);
+          }
+        } catch (parseError) {
+          console.error(`[API] classesAPI.updateSchedule: Failed to parse error response:`, parseError);
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return await handleResponse(response);
+    } catch (error) {
+      console.error(`[API] classesAPI.updateSchedule: Exception:`, error);
+      throw error;
+    }
   },
 
   // Delete schedule from class

@@ -134,8 +134,17 @@ const handleAddScheduleSubmit = async (e) => {
       })
       toast.success('Jadwal berhasil ditambahkan')
     } catch (err) {
-      setError('Gagal menambahkan jadwal')
-      toast.error('Gagal menambahkan jadwal')
+      console.error('Add schedule error:', err);
+      
+      // Check for the exact error message from the backend about overlapping schedules
+      if (err && err.message === 'Terdapat jadwal lain yang bentrok pada hari dan jam tersebut') {
+        setError('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
+        toast.error('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
+      } else {
+        // Generic error message as fallback
+        setError(err.message || 'Gagal menambahkan jadwal');
+        toast.error(err.message || 'Gagal menambahkan jadwal');
+      }
     } finally {
       setLoading(false)
     }
@@ -170,8 +179,17 @@ const handleAddScheduleSubmit = async (e) => {
       setShowEditScheduleModal(false)
       toast.success('Jadwal berhasil diperbarui')
     } catch (err) {
-      setError('Gagal memperbarui jadwal')
-      toast.error('Gagal memperbarui jadwal')
+      console.error('Edit schedule error:', err);
+      
+      // Check for the exact error message from the backend about overlapping schedules
+      if (err && err.message === 'Terdapat jadwal lain yang bentrok pada hari dan jam tersebut') {
+        setError('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
+        toast.error('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
+      } else {
+        // Generic error message as fallback
+        setError(err.message || 'Gagal memperbarui jadwal');
+        toast.error(err.message || 'Gagal memperbarui jadwal');
+      }
     } finally {
       setLoading(false)
     }
@@ -260,7 +278,7 @@ const handleAddScheduleSubmit = async (e) => {
                   <select
                     value={selectedLevel}
                     onChange={handleLevelChange}
-                    className="form-select"
+                className="form-select"
                   >
                     <option value="">Semua Tingkat</option>
                     <option value="1">Kelas 1</option>

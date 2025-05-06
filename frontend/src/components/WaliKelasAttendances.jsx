@@ -124,8 +124,8 @@ const WaliKelasAttendances = () => {
         setAttendances([]);
         setNoDataForDate(true);
       } else {
-        setError('Gagal mengambil data kehadiran');
-        toast.error('Gagal mengambil data kehadiran');
+      setError('Gagal mengambil data kehadiran');
+      toast.error('Gagal mengambil data kehadiran');
       }
     } finally {
       setLoading(false);

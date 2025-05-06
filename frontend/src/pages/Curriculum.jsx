@@ -29,8 +29,8 @@ const Curriculum = () => {
       
       try {
         // Try to get existing curriculum
-        const response = await curriculumsAPI.getAll();
-        console.log('Raw API Response:', response);
+      const response = await curriculumsAPI.getAll();
+      console.log('Raw API Response:', response);
 
         if (!response) {
           console.log('Empty response received, attempting to create default curriculum...');
@@ -52,13 +52,13 @@ const Curriculum = () => {
         } else if (response && typeof response === 'object' && (response.name || response.description)) {
           // If response is a single object with curriculum data
           console.log('Using single curriculum object:', response);
-          setCurriculumData(prevData => ({
-            ...prevData,
+        setCurriculumData(prevData => ({
+          ...prevData,
             id: response.id || 0,
             name: response.name || '',
             description: response.description || ''
-          }));
-        } else {
+        }));
+      } else {
           // No valid curriculum found, try to create a default one
           console.log('No valid curriculum found in response, attempting to create a default one...');
           await createDefaultCurriculum();

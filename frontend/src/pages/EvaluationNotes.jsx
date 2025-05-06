@@ -667,13 +667,36 @@ const EvaluationNotes = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus evaluasi ini?')) {
       try {
         setLoading(true);
+        let deleteSuccess = false;
 
-        if (!selectedSemester) {
-          toast.error('Semester tidak ditemukan');
-          return;
+        // Try semester-scoped endpoint first
+        if (selectedSemester) {
+          try {
+            console.log(`Attempting to delete evaluation via semester endpoint: semester=${selectedSemester.id}, evaluation=${id}`);
+            await teachersAPI.deleteEvaluation(selectedSemester.id, id);
+            console.log('Evaluation deleted via semester endpoint');
+            deleteSuccess = true;
+          } catch (err) {
+            console.log('Semester-scoped delete endpoint failed:', err);
+          }
         }
 
-        await teachersAPI.deleteEvaluation(selectedSemester.id, id);
+        // If semester-scoped delete failed, try direct endpoint
+        if (!deleteSuccess) {
+          try {
+            console.log(`Attempting to delete evaluation via direct endpoint: evaluation=${id}`);
+            await teachersAPI.deleteEvaluationDirect(id);
+            console.log('Evaluation deleted via direct endpoint');
+            deleteSuccess = true;
+          } catch (err) {
+            console.log('Direct delete endpoint failed:', err);
+          }
+        }
+
+        if (!deleteSuccess) {
+          throw new Error('All delete methods failed');
+        }
+
         toast.success('Evaluasi berhasil dihapus');
         // Return to list view if we were viewing the deleted evaluation
         if (viewingEvaluation?.id === id || selectedEvaluation?.id === id) {
@@ -681,7 +704,11 @@ const EvaluationNotes = () => {
           setSelectedEvaluation(null);
           setCurrentView('list');
         }
-        fetchEvaluations(selectedSemester.id);
+        
+        // Refresh the evaluations list if semester is selected
+        if (selectedSemester) {
+          fetchEvaluations(selectedSemester.id);
+        }
       } catch (err) {
         console.error('Error deleting evaluation:', err);
         toast.error(err.message || 'Gagal menghapus evaluasi');

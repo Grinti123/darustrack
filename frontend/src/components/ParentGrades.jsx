@@ -474,9 +474,6 @@ const ParentGrades = () => {
                   <div className="card-body d-flex justify-content-between align-items-center p-3">
                     <div>
                       <h5 className="mb-1">{category.name}</h5>
-                      <div className="small text-muted">
-                        {category.details?.length || 0} penilaian
-                      </div>
                     </div>
                     <button
                       className="btn btn-sm btn-primary"

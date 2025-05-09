@@ -1362,7 +1362,7 @@ export const classesAPI = {
       if (scheduleData.start_time) requestBody.start_time = scheduleData.start_time;
       if (scheduleData.end_time) requestBody.end_time = scheduleData.end_time;
 
-      const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
+      const response = await fetch(`${API_BASE_URL}/classes/schedule/${scheduleId}`, {
         method: 'PUT',
         ...getCommonOptions(),
         headers: getHeaders(),
@@ -1402,7 +1402,7 @@ export const classesAPI = {
 
   // Delete schedule from class
   deleteSchedule: async (classId, scheduleId) => {
-    const response = await fetch(`${API_BASE_URL}/classes/schedules/${scheduleId}`, {
+    const response = await fetch(`${API_BASE_URL}/classes/schedule/${scheduleId}`, {
       method: 'DELETE',
       headers: getHeaders(),
       credentials: 'include'

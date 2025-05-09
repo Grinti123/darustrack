@@ -1351,11 +1351,10 @@ export const classesAPI = {
   },
 
   // Update schedule in class
-  updateSchedule: async (classId, scheduleId, scheduleData) => {
-    console.log(`[API] classesAPI.updateSchedule: Updating schedule ${scheduleId} for class ${classId}, data:`, scheduleData);
+  updateSchedule: async (scheduleId, scheduleData) => {
+    console.log(`[API] classesAPI.updateSchedule: Updating schedule ${scheduleId}, data:`, scheduleData);
     try {
-      // Ensure the request body follows the API specification
-      // subject_id, day, start_time, and end_time are all optional
+      // Only include fields that are provided (optional fields)
       const requestBody = {};
       if (scheduleData.subject_id) requestBody.subject_id = scheduleData.subject_id;
       if (scheduleData.day) requestBody.day = scheduleData.day;

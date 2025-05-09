@@ -173,7 +173,22 @@ const handleAddScheduleSubmit = async (e) => {
 
     try {
       setLoading(true)
-      await classesAPI.updateSchedule(selectedClass.id, selectedSchedule.id, editScheduleForm)
+      // Only include fields that have changed and convert day to Indonesian
+      const scheduleData = {};
+      if (editScheduleForm.subject_id !== selectedSchedule.subject_id) {
+        scheduleData.subject_id = editScheduleForm.subject_id;
+      }
+      if (editScheduleForm.day !== selectedSchedule.day) {
+        scheduleData.day = getDayInIndonesian(editScheduleForm.day);
+      }
+      if (editScheduleForm.start_time !== selectedSchedule.start_time) {
+        scheduleData.start_time = editScheduleForm.start_time;
+      }
+      if (editScheduleForm.end_time !== selectedSchedule.end_time) {
+        scheduleData.end_time = editScheduleForm.end_time;
+      }
+
+      await classesAPI.updateSchedule(selectedSchedule.id, scheduleData)
       const response = await classesAPI.getSchedule(selectedClass.id)
       setSchedules(Array.isArray(response) ? response : [])
       setShowEditScheduleModal(false)
@@ -181,12 +196,10 @@ const handleAddScheduleSubmit = async (e) => {
     } catch (err) {
       console.error('Edit schedule error:', err);
       
-      // Check for the exact error message from the backend about overlapping schedules
       if (err && err.message === 'Terdapat jadwal lain yang bentrok pada hari dan jam tersebut') {
         setError('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
         toast.error('Terdapat jadwal lain yang bentrok pada hari dan jam tersebut');
       } else {
-        // Generic error message as fallback
         setError(err.message || 'Gagal memperbarui jadwal');
         toast.error(err.message || 'Gagal memperbarui jadwal');
       }
@@ -244,6 +257,17 @@ const handleAddScheduleSubmit = async (e) => {
       'Friday': 'Jumat'
     }
     return days[day] || day
+  }
+
+  const getEnglishDay = (indonesianDay) => {
+    const days = {
+      'Senin': 'Monday',
+      'Selasa': 'Tuesday',
+      'Rabu': 'Wednesday',
+      'Kamis': 'Thursday',
+      'Jumat': 'Friday'
+    }
+    return days[indonesianDay] || indonesianDay
   }
 
   // Add a new handler for clicking the "Add Schedule" button in the schedule list modal
@@ -412,11 +436,11 @@ const handleAddScheduleSubmit = async (e) => {
                       required
                     >
                       <option value="">Pilih Hari</option>
-                      <option value="Monday">Senin</option>
-                      <option value="Tuesday">Selasa</option>
-                      <option value="Wednesday">Rabu</option>
-                      <option value="Thursday">Kamis</option>
-                      <option value="Friday">Jumat</option>
+                      <option value="Senin">Senin</option>
+                      <option value="Selasa">Selasa</option>
+                      <option value="Rabu">Rabu</option>
+                      <option value="Kamis">Kamis</option>
+                      <option value="Jumat">Jumat</option>
                     </select>
                   </div>
                   <div className="mb-3">
@@ -513,11 +537,11 @@ const handleAddScheduleSubmit = async (e) => {
                         required
                     >
                       <option value="">Pilih Hari</option>
-                      <option value="Monday">Senin</option>
-                      <option value="Tuesday">Selasa</option>
-                      <option value="Wednesday">Rabu</option>
-                      <option value="Thursday">Kamis</option>
-                      <option value="Friday">Jumat</option>
+                      <option value="Senin">Senin</option>
+                      <option value="Selasa">Selasa</option>
+                      <option value="Rabu">Rabu</option>
+                      <option value="Kamis">Kamis</option>
+                      <option value="Jumat">Jumat</option>
                     </select>
                       </div>
                   <div className="mb-3">

@@ -165,28 +165,46 @@ const EvaluationNotes = () => {
   };
 
   const handleEdit = (evaluation) => {
-    setEditingId(evaluation.id);
-    setEditTitle(evaluation.title);
+    console.log('Handling edit for evaluation:', evaluation);
+    try {
+      setEditingId(evaluation.id);
+      setEditTitle(evaluation.title || '');
+      console.log('Set editingId to:', evaluation.id);
+      console.log('Set editTitle to:', evaluation.title);
+    } catch (err) {
+      console.error('Error in handleEdit:', err);
+      toast.error('Error while entering edit mode');
+    }
   };
 
   const handleUpdate = async (id) => {
+    console.log('Handling update for evaluation ID:', id);
+    console.log('Current editTitle:', editTitle);
+    
     try {
       if (!editTitle.trim()) {
         toast.error('Judul evaluasi harus diisi');
         return;
       }
 
-      if (!selectedSemester) {
-        toast.error('Semester tidak ditemukan');
-        return;
-      }
-
-      await teachersAPI.updateEvaluation(selectedSemester.id, id, { title: editTitle });
+      console.log(`Making API call to update evaluation ${id} with title "${editTitle}"`);
+      const response = await teachersAPI.updateEvaluation(null, id, { title: editTitle });
+      console.log('Update evaluation response:', response);
+      
       toast.success('Evaluasi berhasil diperbarui');
       setEditingId(null);
-      fetchEvaluations(selectedSemester.id);
+      
+      // Refresh the evaluations
+      if (selectedSemester) {
+        fetchEvaluations(selectedSemester.id);
+      }
     } catch (err) {
       console.error('Error updating evaluation:', err);
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       toast.error(err.message || 'Gagal memperbarui evaluasi');
     }
   };
@@ -887,26 +905,34 @@ const EvaluationNotes = () => {
                 <div className="card">
                   <div className="card-body">
                     {editingId === evaluation.id ? (
-                      <div className="d-flex gap-2">
+                      <div className="d-flex gap-2 align-items-center">
                         <input
                           type="text"
                           className="form-control"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           placeholder="Masukkan judul baru"
+                          autoFocus
                         />
-                        <button
-                          className="btn btn-success btn-sm"
-                          onClick={() => handleUpdate(evaluation.id)}
-                        >
-                          Simpan
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setEditingId(null)}
-                        >
-                          Batal
-                        </button>
+                        <div className="btn-group">
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleUpdate(evaluation.id)}
+                            title="Simpan perubahan"
+                          >
+                            <i className="bi bi-check-lg"></i> Simpan
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              console.log('Cancelling edit mode');
+                              setEditingId(null);
+                            }}
+                            title="Batalkan perubahan"
+                          >
+                            <i className="bi bi-x-lg"></i> Batal
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <>
@@ -916,24 +942,28 @@ const EvaluationNotes = () => {
                             ID: {evaluation.id}
                           </p>
                           <div className="btn-group">
-                            <button
-                              className="btn btn-outline-primary btn-sm"
-                              onClick={() => handleEdit(evaluation)}
-                            >
-                              Edit
-                            </button>
+                            {isWaliKelas && (
+                              <button
+                                className="btn btn-outline-primary btn-sm"
+                                onClick={() => handleEdit(evaluation)}
+                              >
+                                Edit
+                              </button>
+                            )}
                             <button
                               className="btn btn-outline-info btn-sm"
                               onClick={() => handleViewDetails(evaluation)}
                             >
                               Detail
                             </button>
-                            <button
-                              className="btn btn-outline-danger btn-sm"
-                              onClick={() => handleDelete(evaluation.id)}
-                            >
-                              Hapus
-                            </button>
+                            {isWaliKelas && (
+                              <button
+                                className="btn btn-outline-danger btn-sm"
+                                onClick={() => handleDelete(evaluation.id)}
+                              >
+                                Hapus
+                              </button>
+                            )}
                           </div>
                         </div>
                       </>

@@ -223,8 +223,16 @@ const AcademicAssessment = () => {
 
   // New function to open delete confirmation modal
   const openDeleteCategoryModal = (category) => {
+    console.log('Opening delete modal for category:', category);
+    console.log('Current state - showDeleteModal:', showDeleteModal, 'categoryToDelete:', categoryToDelete);
+    
+    // Force modal to be visible and set category to delete
     setCategoryToDelete(category);
-    setShowDeleteModal(true);
+    setTimeout(() => {
+      console.log('After setCategoryToDelete - categoryToDelete:', categoryToDelete);
+      setShowDeleteModal(true);
+      console.log('After setShowDeleteModal - showDeleteModal:', showDeleteModal);
+    }, 100);
   };
 
   // New function to confirm category deletion
@@ -234,10 +242,14 @@ const AcademicAssessment = () => {
     try {
       setDeletingCategory(true);
       setDeletingCategoryId(categoryToDelete.id);
+      console.log(`Deleting category with ID: ${categoryToDelete.id}`);
+      
       await teachersAPI.deleteCategory(categoryToDelete.id);
       toast.success('Kategori berhasil dihapus');
+      
       // Refresh the categories
       fetchCategories(selectedGrade.subject_id);
+      
       // Close the modal
       setShowDeleteModal(false);
       setCategoryToDelete(null);
@@ -588,220 +600,8 @@ const AcademicAssessment = () => {
     );
   };
 
-  // Handle the different views
-  if (currentView === 'semesters') {
-    return (
-      <div className="container-fluid py-4">
-        {renderSemesterList()}
-      </div>
-    );
-  }
-
-  if (currentView === 'subjects') {
-    return renderSubjectsList();
-  }
-
-  // Modify these to update currentView instead of directly resetting selected values
-  if (selectedDetail) {
-    return (
-      <div className="container-fluid py-4">
-        <div className="d-flex align-items-center mb-4">
-          <button
-            className="btn btn-link text-decoration-none p-0 me-3"
-            onClick={() => {
-              setSelectedDetail(null);
-              setStudents([]);
-              setCurrentView('categories');
-            }}
-            style={{ color: '#000', fontSize: '1rem' }}
-          >
-            ← {selectedCategory.name}
-          </button>
-          <h2 className="mb-0">{selectedDetail.name}</h2>
-        </div>
-
-        <div className="mb-3">
-          <div className="input-group">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="12/03/2025"
-              style={{ maxWidth: '200px' }}
-              readOnly
-              value={selectedDetail.date ? new Date(selectedDetail.date).toLocaleDateString('id-ID') : ''}
-            />
-            <span className="input-group-text bg-white">
-              <i className="bi bi-calendar"></i>
-            </span>
-          </div>
-        </div>
-
-        {loadingStudents ? (
-          <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : students.length > 0 ? (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <div className="table-responsive">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th scope="col" style={{ width: '50px' }}>No</th>
-                      <th scope="col">Nama</th>
-                      <th scope="col">Keterangan</th>
-                      <th scope="col" className="text-end" style={{ width: '120px' }}>Nilai</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((student, index) => (
-                      <tr key={student.id}>
-                        <td>{index + 1}</td>
-                        <td style={{ fontWeight: '500' }}>{student.name}</td>
-                        <td>{selectedDetail.name}</td>
-                        {isWaliKelas ? (
-                          <td className="text-end">
-                            {student.score !== null ? (
-                              <button
-                                className="btn btn-primary"
-                                style={{
-                                  width: '50px',
-                                  padding: '4px 0',
-                                  borderRadius: '4px',
-                                  fontSize: '0.9rem'
-                                }}
-                                onClick={() => handleOpenScoreModal(student)}
-                              >
-                                {student.score}
-                              </button>
-                            ) : (
-                              <button
-                                className="btn btn-outline-primary"
-                                style={{
-                                  minWidth: '80px',
-                                  padding: '4px 15px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.9rem'
-                                }}
-                                onClick={() => handleOpenScoreModal(student)}
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </td>
-                        ) : (
-                          <td className="text-end">
-                            {student.score !== null ? (
-                              <span
-                                className="btn btn-primary"
-                                style={{
-                                  width: '50px',
-                                  padding: '4px 0',
-                                  borderRadius: '4px',
-                                  fontSize: '0.9rem',
-                                  cursor: 'default'
-                                }}
-                              >
-                                {student.score}
-                              </span>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="alert alert-info">
-            Belum ada data siswa untuk detail kategori ini.
-          </div>
-        )}
-
-        {isWaliKelas && students.length > 0 && (
-          <div className="d-flex justify-content-end mt-3">
-            <div className="d-flex gap-2">
-              <select className="form-select" style={{ width: '150px' }}>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-              <button className="btn btn-outline-secondary">
-                <i className="bi bi-chevron-left"></i>
-              </button>
-              <button className="btn btn-outline-primary">1</button>
-              <button className="btn btn-outline-secondary">2</button>
-              <button className="btn btn-outline-secondary">
-                <i className="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <Modal
-          show={showScoreModal}
-          onHide={handleCloseScoreModal}
-          centered
-          backdrop="static"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              {editingStudent?.score !== null ? 'Edit Nilai' : 'Input Nilai'}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {editingStudent && (
-              <div>
-                <p className="mb-3">
-                  <strong>Nama Siswa:</strong> {editingStudent.name}
-                </p>
-                <p className="mb-3">
-                  <strong>Penilaian:</strong> {selectedDetail.name}
-                </p>
-                <div className="mb-3">
-                  <label htmlFor="scoreInput" className="form-label">Nilai (0-100)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="scoreInput"
-                    min="0"
-                    max="100"
-                    value={scoreInput}
-                    onChange={(e) => setScoreInput(e.target.value)}
-                    placeholder="Masukkan nilai"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleCloseScoreModal} disabled={updatingScore}>
-              Batal
-            </Button>
-            <Button variant="primary" onClick={handleUpdateScore} disabled={updatingScore}>
-              {updatingScore ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Menyimpan...
-                </>
-              ) : (
-                'Simpan'
-              )}
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </div>
-    );
-  }
-
-  if (currentView === 'categories') {
+  // Add the renderCategoriesList function
+  const renderCategoriesList = () => {
     return (
       <div className="container-fluid py-4">
         <div className="d-flex align-items-center mb-4">
@@ -882,88 +682,99 @@ const AcademicAssessment = () => {
                 >
                   Tambah Kategori
                 </button>
-          </div>
-        )}
+              </div>
+            )}
 
             {loadingCategories ? (
-                <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
             ) : categories.length > 0 ? (
-          <div className="d-flex flex-column gap-3">
+              <div className="d-flex flex-column gap-3">
                 {categories.map((category) => (
-              <div
+                  <div
                     key={category.id}
-                className="card border rounded-3"
-                style={{ backgroundColor: '#fff' }}
-              >
-                <div className="card-body d-flex justify-content-between align-items-center p-3">
-                  <div>
-                    <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
+                    className="card border rounded-3"
+                    style={{ backgroundColor: '#fff' }}
+                  >
+                    <div className="card-body d-flex justify-content-between align-items-center p-3">
+                      <div>
+                        <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
                           {category.name}
-                    </h5>
-                  </div>
-                  <div className="d-flex align-items-center gap-2">
-                    {isWaliKelas && (
-                      <>
-                        <button
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={() => {
+                        </h5>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {isWaliKelas && (
+                          <>
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => {
                                 setEditingCategory(category);
                                 setNewCategoryName(category.name);
-                          }}
+                              }}
                               disabled={deletingCategory}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-outline-danger btn-sm"
-                              onClick={() => openDeleteCategoryModal(category)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                console.log('Delete button clicked for category:', category);
+                                // First set the category to delete
+                                setCategoryToDelete(category);
+                                // Then show the modal after a short delay to ensure state is updated
+                                setTimeout(() => {
+                                  console.log('Setting showDeleteModal to true');
+                                  setShowDeleteModal(true);
+                                }, 50);
+                              }}
                               disabled={deletingCategory}
-                        >
+                            >
                               {deletingCategory && category.id === deletingCategoryId ? (
                                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                               ) : 'Hapus'}
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className="btn btn-light"
-                      style={{
-                        backgroundColor: '#f8f9fa',
-                        color: '#0d6efd',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px 16px',
-                        fontSize: '0.9rem',
-                        fontWeight: '500'
-                      }}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="btn btn-light"
+                          style={{
+                            backgroundColor: '#f8f9fa',
+                            color: '#0d6efd',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 16px',
+                            fontSize: '0.9rem',
+                            fontWeight: '500'
+                          }}
                           onClick={() => {
                             setSelectedCategory(category);
                             setCurrentView('details');
                           }}
-                    >
-                      Pilih
-                    </button>
+                        >
+                          Pilih
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="alert alert-info">
+            ) : (
+              <div className="alert alert-info">
                 Belum ada kategori penilaian untuk mata pelajaran ini.
-          </div>
+              </div>
             )}
           </>
         )}
       </div>
     );
-  }
+  };
 
-  if (currentView === 'details') {
+  // Add the renderCategoryDetails function
+  const renderCategoryDetails = () => {
     return (
       <div className="container-fluid py-4">
         <div className="d-flex align-items-center mb-4">
@@ -984,23 +795,23 @@ const AcademicAssessment = () => {
 
         {loadingDetails ? (
           <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-              </div>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
         ) : details.length > 0 ? (
-              <div className="d-flex flex-column gap-3">
+          <div className="d-flex flex-column gap-3">
             {details.map((detail) => (
-                  <div
+              <div
                 key={detail.id}
-                    className="card border rounded-3"
-                    style={{ backgroundColor: '#fff' }}
-                  >
-                    <div className="card-body d-flex justify-content-between align-items-center p-3">
-                      <div>
-                        <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
+                className="card border rounded-3"
+                style={{ backgroundColor: '#fff' }}
+              >
+                <div className="card-body d-flex justify-content-between align-items-center p-3">
+                  <div>
+                    <h5 className="mb-0" style={{ fontSize: '1.1rem', color: '#0d6efd' }}>
                       {detail.name}
-                        </h5>
+                    </h5>
                     <p className="text-muted mb-0">
                       {new Date(detail.date).toLocaleDateString('id-ID', {
                         day: 'numeric',
@@ -1008,62 +819,62 @@ const AcademicAssessment = () => {
                         year: 'numeric'
                       })}
                     </p>
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        {isWaliKelas && (
-                          <>
-                            <button
-                              className="btn btn-outline-primary btn-sm"
-                              onClick={() => {
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    {isWaliKelas && (
+                      <>
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => {
                             setEditingDetail(detail);
                             setCategoryDetails({
                               name: detail.name,
                               date: detail.date.split('T')[0]
                             });
-                              }}
+                          }}
                           disabled={deletingDetail}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-outline-danger btn-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-outline-danger btn-sm"
                           onClick={() => handleDeleteCategoryDetail(detail.id)}
                           disabled={deletingDetail}
-                            >
+                        >
                           {deletingDetail && detail.id === deletingDetailId ? (
                             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                           ) : 'Hapus'}
-                            </button>
-                          </>
-                        )}
-                        <button
-                          className="btn btn-light"
-                          style={{
-                            backgroundColor: '#f8f9fa',
-                            color: '#0d6efd',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '6px 16px',
-                            fontSize: '0.9rem',
-                            fontWeight: '500'
-                          }}
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="btn btn-light"
+                      style={{
+                        backgroundColor: '#f8f9fa',
+                        color: '#0d6efd',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '6px 16px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}
                       onClick={() => {
                         setSelectedDetail(detail);
                         setCurrentView('students');
                       }}
-                        >
+                    >
                       Lihat Siswa
-                        </button>
-                      </div>
-                    </div>
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
-            ) : (
-              <div className="alert alert-info">
+            ))}
+          </div>
+        ) : (
+          <div className="alert alert-info">
             Belum ada detail untuk kategori ini.
-              </div>
-            )}
+          </div>
+        )}
 
         {isWaliKelas && (
           <div className="card mt-4 border-0 shadow-sm">
@@ -1133,13 +944,14 @@ const AcademicAssessment = () => {
         )}
       </div>
     );
-  }
+  };
 
-  if (currentView === 'students') {
-  return (
-    <div className="container-fluid py-4">
+  // Add the renderStudentsList function
+  const renderStudentsList = () => {
+    return (
+      <div className="container-fluid py-4">
         <div className="d-flex align-items-center mb-4">
-                <button
+          <button
             className="btn btn-link text-decoration-none p-0 me-3"
             onClick={() => {
               setCurrentView('details');
@@ -1148,11 +960,11 @@ const AcademicAssessment = () => {
             style={{ color: '#000', fontSize: '1rem' }}
           >
             ← Kembali ke Detail
-                </button>
+          </button>
           <h2 className="mb-0">
             Nilai Siswa: {selectedDetail?.name || 'Detail'}
           </h2>
-              </div>
+        </div>
 
         {loadingStudents ? (
           <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
@@ -1193,7 +1005,7 @@ const AcademicAssessment = () => {
                     ))}
                   </tbody>
                 </table>
-      </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -1203,9 +1015,10 @@ const AcademicAssessment = () => {
         )}
       </div>
     );
-  }
+  };
 
-  // Add the score modal render function at the end of the component
+  // Move the modal render functions before the conditional view checks
+  // Add the score modal render function
   const renderScoreModal = () => {
     return (
       <Modal show={showScoreModal} onHide={handleCloseScoreModal} centered>
@@ -1252,51 +1065,109 @@ const AcademicAssessment = () => {
 
   // Add the delete confirmation modal
   const renderDeleteConfirmationModal = () => {
+    console.log('Rendering delete modal - showDeleteModal:', showDeleteModal, 'categoryToDelete:', categoryToDelete);
     return (
-      <Modal show={showDeleteModal} onHide={closeDeleteModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Konfirmasi Hapus</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {categoryToDelete && (
-            <div>
-              <p>Apakah Anda yakin ingin menghapus kategori <strong>{categoryToDelete.name}</strong>?</p>
-              <div className="alert alert-warning">
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                Menghapus kategori akan menghapus semua detail dan nilai siswa di dalamnya. Tindakan ini tidak dapat dibatalkan.
+      <>
+        {/* Always render Modal component for debugging */}
+        <Modal 
+          show={showDeleteModal} 
+          onHide={closeDeleteModal} 
+          centered
+          backdrop="static"
+          keyboard={false}
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Konfirmasi Hapus</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {categoryToDelete ? (
+              <div>
+                <p>Apakah Anda yakin ingin menghapus kategori <strong>{categoryToDelete.name}</strong>?</p>
+                <div className="alert alert-warning">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Menghapus kategori akan menghapus semua detail dan nilai siswa di dalamnya. Tindakan ini tidak dapat dibatalkan.
+                </div>
               </div>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal} disabled={deletingCategory}>
-            Batal
-          </Button>
-          <Button variant="danger" onClick={confirmDeleteCategory} disabled={deletingCategory}>
-            {deletingCategory ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Menghapus...
-              </>
-            ) : 'Hapus'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            ) : (
+              <div>Mohon tunggu...</div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeDeleteModal} disabled={deletingCategory}>
+              Batal
+            </Button>
+            <Button variant="danger" onClick={confirmDeleteCategory} disabled={deletingCategory || !categoryToDelete}>
+              {deletingCategory ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Menghapus...
+                </>
+              ) : 'Hapus'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </>
     );
   };
 
-  // Then include the modal in the main render function
+  // Handle the different views
+  if (currentView === 'semesters') {
+    return (
+      <div className="container-fluid py-4">
+        {renderSemesterList()}
+        {renderDeleteConfirmationModal()}
+      </div>
+    );
+  }
+
+  if (currentView === 'subjects') {
+    return (
+      <>
+        {renderSubjectsList()}
+        {renderDeleteConfirmationModal()}
+      </>
+    );
+  }
+
+  // Add the simplified if statement for categories view
+  if (currentView === 'categories') {
+    return (
+      <>
+        {renderCategoriesList()}
+        {renderDeleteConfirmationModal()}
+      </>
+    );
+  }
+
+  if (currentView === 'details') {
+    return (
+      <>
+        {renderCategoryDetails()}
+        {renderScoreModal()}
+        {renderDeleteConfirmationModal()}
+      </>
+    );
+  }
+
+  if (currentView === 'students') {
+    return (
+      <>
+        {renderStudentsList()}
+        {renderScoreModal()}
+        {renderDeleteConfirmationModal()}
+      </>
+    );
+  }
+
+  // Then include the modals
   return (
     <div className="container-fluid py-4">
-      {currentView === 'semesters' && renderSemesterList()}
-      {currentView === 'subjects' && renderSubjectsList()}
-      {currentView === 'categories' && renderCategoriesList()}
-      {currentView === 'details' && renderCategoryDetails()}
-      {currentView === 'students' && renderStudentsList()}
-      
-      {/* Add the modals */}
-      {renderScoreModal()}
+      <div className="alert alert-warning">
+        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+        Tampilan tidak ditemukan. Silakan kembali ke halaman utama.
+      </div>
       {renderDeleteConfirmationModal()}
+      {renderScoreModal()}
     </div>
   );
 };

@@ -173,7 +173,6 @@ const handleAddScheduleSubmit = async (e) => {
 
     try {
       setLoading(true)
-      // Only include fields that have changed and convert day to Indonesian
       const scheduleData = {};
       if (editScheduleForm.subject_id !== selectedSchedule.subject_id) {
         scheduleData.subject_id = editScheduleForm.subject_id;

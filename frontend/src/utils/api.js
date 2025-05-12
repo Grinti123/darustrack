@@ -490,18 +490,35 @@ export const teachersAPI = {
       throw error;
     }),
 
-  updateEvaluation: (semesterId, id, data) =>
-    fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${id}`, {
+  updateEvaluation: (semesterId, id, data) => {
+    console.log(`[API] updateEvaluation: Updating evaluation ${id} for semester ${semesterId} with data:`, data);
+    return fetch(`${API_BASE_URL}/teachers/evaluations/${id}`, {
       method: 'PUT',
       ...getCommonOptions(),
       headers: getHeaders(),
       body: JSON.stringify(data)
     })
-    .then(handleResponse)
+    .then(response => {
+      console.log(`[API] updateEvaluation: Response status:`, response.status);
+      if (!response.ok) {
+        console.log(`[API] updateEvaluation: Error response:`, response.statusText);
+      }
+      return handleResponse(response);
+    })
+    .then(data => {
+      console.log(`[API] updateEvaluation: Success response:`, data);
+      return data;
+    })
     .catch(error => {
-      console.error(`[API] Error updating evaluation ${id} for semester ${semesterId}:`, error);
+      console.error(`[API] Error updating evaluation ${id}:`, error);
+      console.error(`[API] Error details:`, {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       throw error;
-    }),
+    });
+  },
 
   deleteEvaluation: (semesterId, id) =>
     fetch(`${API_BASE_URL}/teachers/semesters/${semesterId}/evaluations/${id}`, {
